@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>APEX — AI Trading Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #080b10;
+  --surface:   #0d1117;
+  --card:      #111820;
+  --border:    #1e2d3d;
+  --accent:    #00d4ff;
+  --green:     #00ff88;
+  --red:       #ff3b5c;
+  --gold:      #f5c542;
+  --neutral:   #8899aa;
+  --text:      #e8f0f8;
+  --subtext:   #5a7080;
+  --font-head: 'Bebas Neue', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,11,16,0.95);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.logo {
+  font-family: var(--font-head);
+  font-size: 2.2rem;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(0,212,255,0.4);
+}
+.logo span { color: var(--text); }
+
+.header-right {
+  display: flex; align-items: center; gap: 20px;
+}
+
+.live-dot {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--green); letter-spacing: 1px;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
+}
+
+#lastUpdate {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--subtext);
+}
+
+.refresh-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--neutral);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  cursor: pointer; letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── TABS ── */
+.tab-bar {
+  display: flex; gap: 0;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.tab {
+  padding: 14px 22px;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--subtext); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab:hover  { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── MAIN GRID ── */
+main {
+  padding: 28px 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.25s;
+  cursor: pointer;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-color, var(--accent)), transparent);
+  opacity: 0.6;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+.card-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 16px;
+}
+.card-symbol {
+  font-family: var(--font-head);
+  font-size: 1.8rem; letter-spacing: 2px;
+  color: var(--text);
+}
+.card-name {
+  font-size: 0.72rem; color: var(--subtext);
+  letter-spacing: 1px; margin-top: 2px;
+}
+.card-type {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  padding: 3px 8px; border-radius: 4px; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.type-index     { background: rgba(0,212,255,0.12); color: var(--accent); }
+.type-commodity { background: rgba(245,197,66,0.12); color: var(--gold); }
+.type-stock     { background: rgba(0,255,136,0.12); color: var(--green); }
+
+/* price row */
+.price-row {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 8px;
+}
+.price {
+  font-family: var(--font-mono); font-size: 1.9rem; font-weight: 500;
+}
+.price-change {
+  font-family: var(--font-mono); font-size: 0.85rem;
+}
+.up   { color: var(--green); }
+.down { color: var(--red); }
+.flat { color: var(--neutral); }
+
+.ohlc {
+  display: flex; gap: 16px;
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--subtext); margin-bottom: 16px;
+}
+.ohlc span { display: flex; flex-direction: column; gap: 2px; }
+.ohlc span b { color: var(--neutral); font-weight: 400; }
+
+/* mini chart */
+.chart-wrap {
+  height: 60px; margin-bottom: 16px;
+  position: relative; overflow: hidden;
+}
+canvas.minichart { width: 100%; height: 60px; }
+
+/* ── SIGNAL BOX ── */
+.signal-box {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  border: 1px solid;
+}
+.signal-box.BUY,
+.signal-box.STRONG_BUY   { background: rgba(0,255,136,0.07); border-color: rgba(0,255,136,0.3); }
+.signal-box.SELL,
+.signal-box.STRONG_SELL  { background: rgba(255,59,92,0.07); border-color: rgba(255,59,92,0.3); }
+.signal-box.NEUTRAL       { background: rgba(136,153,170,0.07); border-color: rgba(136,153,170,0.3); }
+
+.signal-label {
+  font-family: var(--font-head); font-size: 1.3rem; letter-spacing: 2px;
+}
+.BUY .signal-label, .STRONG_BUY .signal-label   { color: var(--green); }
+.SELL .signal-label, .STRONG_SELL .signal-label  { color: var(--red); }
+.NEUTRAL .signal-label                            { color: var(--neutral); }
+
+.confidence-wrap { text-align: right; }
+.confidence-pct {
+  font-family: var(--font-mono); font-size: 1.1rem;
+}
+.BUY .confidence-pct, .STRONG_BUY .confidence-pct   { color: var(--green); }
+.SELL .confidence-pct, .STRONG_SELL .confidence-pct  { color: var(--red); }
+.NEUTRAL .confidence-pct                              { color: var(--neutral); }
+.confidence-label { font-size: 0.6rem; color: var(--subtext); letter-spacing: 1px; margin-top: 1px; }
+
+/* confidence bar */
+.conf-bar-wrap { margin-bottom: 14px; }
+.conf-bar {
+  height: 4px; border-radius: 2px;
+  background: var(--border); overflow: hidden;
+}
+.conf-bar-fill {
+  height: 100%; border-radius: 2px;
+  transition: width 1s ease;
+}
+
+/* technicals */
+.technicals {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; margin-bottom: 14px;
+}
+.tech-item {
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px; padding: 8px;
+  text-align: center;
+}
+.tech-label { font-size: 0.6rem; color: var(--subtext); letter-spacing: 1px; margin-bottom: 3px; }
+.tech-val   { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text); }
+
+/* reasoning */
+.reasoning-toggle {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--subtext); cursor: pointer; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+  border: none; background: none; padding: 0;
+}
+.reasoning-toggle:hover { color: var(--accent); }
+
+.reasoning-list {
+  list-style: none; display: none; margin-bottom: 14px;
+}
+.reasoning-list.open { display: block; }
+.reasoning-list li {
+  font-size: 0.7rem; color: var(--subtext);
+  padding: 4px 0 4px 14px; position: relative;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.reasoning-list li::before {
+  content: '▸'; position: absolute; left: 0;
+  color: var(--accent); font-size: 0.6rem;
+}
+
+/* action buttons */
+.action-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn-buy, .btn-sell {
+  padding: 11px;
+  border-radius: 8px;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  letter-spacing: 2px; cursor: pointer;
+  border: none; font-weight: 500;
+  transition: all 0.2s; text-transform: uppercase;
+}
+.btn-buy  { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+.btn-sell { background: rgba(255,59,92,0.15); color: var(--red);   border: 1px solid rgba(255,59,92,0.3); }
+.btn-buy:hover  { background: rgba(0,255,136,0.28); box-shadow: 0 0 16px rgba(0,255,136,0.2); }
+.btn-sell:hover { background: rgba(255,59,92,0.28);  box-shadow: 0 0 16px rgba(255,59,92,0.2); }
+
+/* news section (inside expanded card) */
+.news-section { margin-top: 14px; display: none; }
+.news-section.open { display: block; }
+.news-title {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--subtext); letter-spacing: 2px;
+  margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.news-item {
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.news-item a {
+  font-size: 0.72rem; color: var(--text);
+  text-decoration: none; line-height: 1.4;
+  display: block;
+}
+.news-item a:hover { color: var(--accent); }
+.news-item .news-meta {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  color: var(--subtext); margin-top: 3px;
+}
+
+/* ── LOADING / ERROR ── */
+.loading-grid {
+  display: flex; align-items: center; justify-content: center;
+  height: 300px; gap: 12px;
+  font-family: var(--font-mono); color: var(--subtext); letter-spacing: 2px;
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── DETAIL PANEL ── */
+#detailPanel {
+  position: fixed; top: 0; right: -480px;
+  width: 460px; height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 200; padding: 28px;
+  overflow-y: auto;
+  transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+#detailPanel.open { right: 0; }
+.panel-close {
+  position: absolute; top: 18px; right: 18px;
+  background: none; border: none; color: var(--subtext);
+  font-size: 1.4rem; cursor: pointer;
+}
+.panel-close:hover { color: var(--text); }
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  padding: 24px;
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--subtext); letter-spacing: 1px;
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+footer b { color: var(--accent); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--card); border: 1px solid var(--border);
+  padding: 12px 24px; border-radius: 8px;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text); letter-spacing: 1px;
+  transition: transform 0.3s; z-index: 300;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  header { padding: 14px 16px; }
+  .logo  { font-size: 1.6rem; }
+  main   { padding: 16px; }
+  .grid  { grid-template-columns: 1fr; }
+  #detailPanel { width: 100%; right: -100%; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">APEX<span>TRADE</span></div>
+  <div class="header-right">
+    <div class="live-dot"><div class="dot"></div> LIVE</div>
+    <div id="lastUpdate">Connecting…</div>
+    <button class="refresh-btn" onclick="triggerRefresh()">↻ REFRESH</button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="all"    onclick="setTab('all',this)">ALL MARKETS</div>
+  <div class="tab"        data-tab="index"  onclick="setTab('index',this)">INDICES</div>
+  <div class="tab"        data-tab="commodity" onclick="setTab('commodity',this)">COMMODITIES</div>
+  <div class="tab"        data-tab="stock"  onclick="setTab('stock',this)">STOCKS</div>
+</div>
+
+<main>
+  <div id="grid" class="grid">
+    <div class="loading-grid" style="grid-column:1/-1">
+      <div class="spinner"></div>
+      <span>FETCHING MARKET DATA…</span>
+    </div>
+  </div>
+</main>
+
+<div id="detailPanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div id="panelContent"></div>
+</div>
+
+<footer>
+  <b>APEXTRADE</b> — AI-powered market analysis &nbsp;|&nbsp; For informational purposes only. Not financial advice.<br/>
+  Data: Alpha Vantage &amp; Finnhub &nbsp;|&nbsp; Signals refresh every 5 minutes
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let marketData  = {};
+let currentTab  = 'all';
+let refreshTimer = null;
+
+const TYPE_COLORS = {
+  index:     '#00d4ff',
+  commodity: '#f5c542',
+  stock:     '#00ff88',
+};
+
+// ─── FETCH ───────────────────────────────────────────────────────────────────
+async function fetchMarket() {
+  try {
+    const res  = await fetch('/api/market');
+    const json = await res.json();
+    marketData = json.data || {};
+    const lu   = json.lastUpdated ? new Date(json.lastUpdated).toLocaleTimeString() : '—';
+    document.getElementById('lastUpdate').textContent = `Updated ${lu}`;
+    renderGrid();
+  } catch (e) {
+    document.getElementById('grid').innerHTML =
+      `<div class="loading-grid" style="grid-column:1/-1; color:#ff3b5c">⚠ Failed to load market data. Check API keys.</div>`;
+  }
+}
+
+async function triggerRefresh() {
+  showToast('Refresh triggered — data updates in ~2 min');
+  await fetch('/api/refresh', { method: 'POST' });
+  setTimeout(fetchMarket, 15000);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function setTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const items = Object.values(marketData).filter(d =>
+    currentTab === 'all' || d.type === currentTab
+  );
+
+  if (!items.length) {
+    grid.innerHTML = `<div class="loading-grid" style="grid-column:1/-1">No data yet — server is fetching…</div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  items.forEach(d => {
+    const card = buildCard(d);
+    grid.appendChild(card);
+  });
+}
+
+function buildCard(d) {
+  const wrap = document.createElement('div');
+  wrap.className = 'card';
+  wrap.style.setProperty('--accent-color', TYPE_COLORS[d.type] || 'var(--accent)');
+
+  const q = d.quote;
+  const s = d.signal;
+  const sigClass = s?.signal?.replace(' ','_') || 'NEUTRAL';
+  const priceStr = q ? q.price.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+  const chg      = q ? (q.changePct >= 0 ? `+${q.changePct.toFixed(2)}%` : `${q.changePct.toFixed(2)}%`) : '';
+  const chgClass = !q ? 'flat' : q.changePct > 0 ? 'up' : q.changePct < 0 ? 'down' : 'flat';
+  const confColor = sigClass.includes('BUY') ? 'var(--green)' : sigClass.includes('SELL') ? 'var(--red)' : 'var(--neutral)';
+
+  wrap.innerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-symbol">${d.id}</div>
+        <div class="card-name">${d.name}</div>
+      </div>
+      <div class="card-type type-${d.type}">${d.type}</div>
+    </div>
+
+    <div class="price-row">
+      <div class="price">${priceStr}</div>
+      <div class="price-change ${chgClass}">${chg}</div>
+    </div>
+
+    ${q ? `<div class="ohlc">
+      <span><b>O</b>${q.open.toFixed(2)}</span>
+      <span><b>H</b>${q.high.toFixed(2)}</span>
+      <span><b>L</b>${q.low.toFixed(2)}</span>
+      <span><b>PC</b>${q.prevClose.toFixed(2)}</span>
+    </div>` : '<div class="ohlc" style="color:var(--subtext)">No quote data — API key needed</div>'}
+
+    <div class="chart-wrap">
+      <canvas class="minichart" id="chart-${d.id}"></canvas>
+    </div>
+
+    <div class="signal-box ${sigClass}">
+      <div>
+        <div class="signal-label">${s?.signal || 'NEUTRAL'}</div>
+        <div style="font-size:0.62rem;color:var(--subtext);margin-top:3px;letter-spacing:1px">AI SIGNAL</div>
+      </div>
+      <div class="confidence-wrap">
+        <div class="confidence-pct">${s?.confidence || 50}%</div>
+        <div class="confidence-label">CONFIDENCE</div>
+      </div>
+    </div>
+
+    <div class="conf-bar-wrap">
+      <div class="conf-bar">
+        <div class="conf-bar-fill" style="width:${s?.confidence||50}%;background:${confColor}"></div>
+      </div>
+    </div>
+
+    <div class="technicals">
+      <div class="tech-item">
+        <div class="tech-label">RSI 14</div>
+        <div class="tech-val" style="color:${rsiColor(s?.rsi)}">${s?.rsi ?? '—'}</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-label">EMA 9/21</div>
+        <div class="tech-val" style="font-size:0.7rem">${s?.ema9 ?? '—'}<br/><span style="color:var(--subtext)">${s?.ema21 ?? '—'}</span></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-label">VOL RATIO</div>
+        <div class="tech-val" style="color:${parseFloat(s?.volRatio)>1.3?'var(--green)':'var(--neutral)'}">${s?.volRatio ?? '—'}×</div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-label">SEASONAL</div>
+        <div class="tech-val">${s?.seasonal ?? '—'}</div>
+      </div>
+      <div class="tech-item" style="grid-column:span 2">
+        <div class="tech-label">AI SCORE</div>
+        <div class="tech-val" style="color:${(s?.score||0)>0?'var(--green)':'var(--red)'}">${s?.score ?? '—'} / 4.0</div>
+      </div>
+    </div>
+
+    <button class="reasoning-toggle" onclick="toggleReasoning(this)">▸ AI REASONING (${s?.reasoning?.length || 0} signals)</button>
+    <ul class="reasoning-list">
+      ${(s?.reasoning||[]).map(r => `<li>${r}</li>`).join('')}
+    </ul>
+
+    <div class="action-row">
+      <button class="btn-buy"  onclick="handleAction('BUY','${d.id}','${priceStr}')">▲ BUY</button>
+      <button class="btn-sell" onclick="handleAction('SELL','${d.id}','${priceStr}')">▼ SELL</button>
+    </div>
+
+    ${d.news && d.news.length ? `
+    <button class="reasoning-toggle" style="margin-top:12px" onclick="toggleNews(this)">▸ LATEST NEWS (${d.news.length})</button>
+    <div class="news-section">
+      <div class="news-title">FUNDAMENTALS & NEWS</div>
+      ${d.news.map(n => `
+        <div class="news-item">
+          <a href="${n.url}" target="_blank" rel="noopener">${n.headline}</a>
+          <div class="news-meta">${n.source}</div>
+        </div>`).join('')}
+    </div>` : ''}
+  `;
+
+  // draw mini chart after DOM inserted
+  requestAnimationFrame(() => drawMiniChart(d));
+  return wrap;
+}
+
+function rsiColor(rsi) {
+  if (rsi == null) return 'var(--neutral)';
+  if (rsi < 30) return 'var(--green)';
+  if (rsi > 70) return 'var(--red)';
+  return 'var(--text)';
+}
+
+// ─── MINI CHART ───────────────────────────────────────────────────────────────
+function drawMiniChart(d) {
+  const canvas = document.getElementById(`chart-${d.id}`);
+  if (!canvas || !d.bars || d.bars.length < 2) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; const H = 60;
+  canvas.width = W; canvas.height = H;
+
+  const closes = d.bars.map(b => b.close);
+  const min = Math.min(...closes);
+  const max = Math.max(...closes);
+  const range = max - min || 1;
+
+  const isUp = closes[closes.length-1] >= closes[0];
+  const color = isUp ? '#00ff88' : '#ff3b5c';
+
+  ctx.clearRect(0, 0, W, H);
+
+  // gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, isUp ? 'rgba(0,255,136,0.25)' : 'rgba(255,59,92,0.25)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+  ctx.beginPath();
+  closes.forEach((c, i) => {
+    const x = (i / (closes.length-1)) * W;
+    const y = H - ((c - min) / range) * (H - 8) - 4;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+function toggleReasoning(btn) {
+  const list = btn.nextElementSibling;
+  list.classList.toggle('open');
+  btn.textContent = btn.textContent.replace(/^[▸▾]/, list.classList.contains('open') ? '▾' : '▸');
+}
+
+function toggleNews(btn) {
+  const section = btn.nextElementSibling;
+  section.classList.toggle('open');
+  btn.textContent = btn.textContent.replace(/^[▸▾]/, section.classList.contains('open') ? '▾' : '▸');
+}
+
+function handleAction(action, symbol, price) {
+  const color = action === 'BUY' ? '#00ff88' : '#ff3b5c';
+  showToast(`${action} signal noted — ${symbol} @ $${price}`);
+  // TODO: wire to your broker API here
+}
+
+function closePanel() {
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── AUTO REFRESH (every 5 min) ───────────────────────────────────────────────
+function startAutoRefresh() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchMarket, 5 * 60 * 1000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+fetchMarket();
+startAutoRefresh();
+</script>
+</body>
+</html>
