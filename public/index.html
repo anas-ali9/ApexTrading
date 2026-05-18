@@ -297,6 +297,14 @@ button { cursor: pointer; }
   font-family: var(--font-mono);
   font-size: 0.62rem;
   text-transform: uppercase;
+  text-align: center;
+}
+.source-badge {
+  margin-top: 6px;
+  color: var(--subtle);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  text-align: right;
 }
 .price-row { margin-top: 18px; align-items: baseline; }
 .price {
@@ -545,6 +553,7 @@ function App() {
   const [marketData, setMarketData] = useState({});
   const [currentTab, setCurrentTab] = useState("all");
   const [lastUpdate, setLastUpdate] = useState("Connecting...");
+  const [serverStatus, setServerStatus] = useState("Starting data engine...");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
@@ -563,6 +572,7 @@ function App() {
       const res = await fetch("/api/market");
       const json = await res.json();
       setMarketData(json.data || {});
+      setServerStatus(json.status || (json.refreshInProgress ? "Refreshing live data..." : "Snapshot ready"));
       setLastUpdate(json.lastUpdated ? `Updated ${new Date(json.lastUpdated).toLocaleTimeString()}` : "Awaiting first refresh");
     } catch (err) {
       setError("Failed to load market data. Check your API keys or server logs.");
@@ -610,7 +620,7 @@ function App() {
 
   return (
     React.createElement("div", { className: "app-shell" },
-      React.createElement(Header, { lastUpdate, onRefresh: triggerRefresh }),
+        React.createElement(Header, { lastUpdate, serverStatus, onRefresh: triggerRefresh }),
       React.createElement("main", { className: "dashboard" },
         React.createElement(Overview, { summary, lastUpdate }),
         React.createElement(MarketToolbar, { currentTab, onTab: setCurrentTab, count: items.length }),
@@ -634,7 +644,7 @@ function App() {
   );
 }
 
-function Header({ lastUpdate, onRefresh }) {
+function Header({ lastUpdate, serverStatus, onRefresh }) {
   return (
     React.createElement("header", { className: "topbar" },
       React.createElement("div", { className: "brand" },
@@ -646,6 +656,7 @@ function Header({ lastUpdate, onRefresh }) {
       ),
       React.createElement("div", { className: "topbar-actions" },
         React.createElement("div", { className: "status-pill" }, React.createElement("span", { className: "live-dot" }), "LIVE"),
+        React.createElement("div", { className: "status-pill" }, serverStatus),
         React.createElement("div", { className: "status-pill" }, lastUpdate),
         React.createElement("button", { className: "refresh-btn", onClick: onRefresh }, "Refresh")
       )
@@ -715,6 +726,7 @@ function MarketCard({ data, onAction }) {
   const changeClass = !quote ? "flat" : quote.changePct > 0 ? "up" : quote.changePct < 0 ? "down" : "flat";
   const change = quote ? `${quote.changePct >= 0 ? "+" : ""}${quote.changePct.toFixed(2)}%` : "--";
   const price = quote ? fmtPrice(quote.price) : "--";
+  const sourceLabel = data.source === "live" ? "LIVE DATA" : "SAMPLE DATA";
 
   return (
     React.createElement(motion.article, {
@@ -732,7 +744,10 @@ function MarketCard({ data, onAction }) {
           React.createElement("div", { className: "symbol" }, data.id),
           React.createElement("div", { className: "name" }, data.name)
         ),
-        React.createElement("div", { className: "type" }, data.type)
+        React.createElement("div", null,
+          React.createElement("div", { className: "type" }, data.type),
+          React.createElement("div", { className: "source-badge" }, sourceLabel)
+        )
       ),
       React.createElement("div", { className: "price-row" },
         React.createElement("div", { className: "price" }, price),
