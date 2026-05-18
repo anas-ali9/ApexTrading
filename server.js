@@ -724,7 +724,18 @@ app.post("/api/refresh", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", lastUpdated, refreshInProgress, refreshStatus });
+  res.json({
+    status: "ok",
+    lastUpdated,
+    refreshInProgress,
+    refreshStatus,
+    providers: {
+      alphaVantage: HAS_AV_KEY,
+      finnhub: HAS_FH_KEY,
+      forexCom: Boolean(FOREX_COM_NEWS_URL),
+    },
+    cachedSymbols: Object.keys(marketCache).length,
+  });
 });
 
 app.get("*", (req, res) => {

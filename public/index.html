@@ -567,12 +567,13 @@ function App() {
     try {
       setError("");
       const res = await fetch("/api/market");
+      if (!res.ok) throw new Error(`Market API returned ${res.status}`);
       const json = await res.json();
       setMarketData(json.data || {});
       setServerStatus(json.status || (json.refreshInProgress ? "Refreshing live data..." : "Snapshot ready"));
       setLastUpdate(json.lastUpdated ? `Updated ${new Date(json.lastUpdated).toLocaleTimeString()}` : "Awaiting first refresh");
     } catch (err) {
-      setError("Failed to load market data. Check your API keys or server logs.");
+      setError("Market API is not reachable from this page. Check the Railway deploy status and /health route.");
     } finally {
       setLoading(false);
     }
