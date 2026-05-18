@@ -17,25 +17,76 @@ app.use(express.static(path.join(__dirname, "public")));
 //   FINNHUB_KEY       - free key from finnhub.io
 const AV_KEY = process.env.ALPHA_VANTAGE_KEY || "demo";
 const FH_KEY = process.env.FINNHUB_KEY || "";
+const FOREX_COM_NEWS_URL = process.env.FOREX_COM_NEWS_URL || "https://www.forex.com/en-us/news-and-analysis/";
 
 const HAS_AV_KEY = Boolean(AV_KEY && AV_KEY !== "demo" && AV_KEY !== "your_key_here");
 const HAS_FH_KEY = Boolean(FH_KEY && FH_KEY !== "your_key_here");
 
 // SYMBOL MAP
 const SYMBOLS = {
-  NDQ: { av: "QQQ", fh: "QQQ", name: "NASDAQ 100", type: "index", base: 456 },
-  US30: { av: "DIA", fh: "DIA", name: "Dow Jones 30", type: "index", base: 390 },
-  SP500: { av: "SPY", fh: "SPY", name: "S&P 500", type: "index", base: 524 },
-  GOLD: { av: "GLD", fh: "GLD", name: "Gold", type: "commodity", base: 216 },
-  SILVER: { av: "SLV", fh: "SLV", name: "Silver", type: "commodity", base: 27 },
-  GS: { av: "GS", fh: "GS", name: "Goldman Sachs", type: "stock", base: 458 },
-  MS: { av: "MS", fh: "MS", name: "Morgan Stanley", type: "stock", base: 98 },
+  NDQ: {
+    av: "QQQ",
+    fh: "QQQ",
+    name: "NASDAQ 100",
+    type: "index",
+    base: 456,
+    newsKeywords: ["nasdaq", "nasdaq 100", "us tech 100", "tech", "qqq", "megacap", "nvidia", "apple", "microsoft"],
+  },
+  US30: {
+    av: "DIA",
+    fh: "DIA",
+    name: "Dow Jones 30",
+    type: "index",
+    base: 390,
+    newsKeywords: ["dow", "dow jones", "wall street", "industrial", "us 30", "dia", "blue chip"],
+  },
+  SP500: {
+    av: "SPY",
+    fh: "SPY",
+    name: "S&P 500",
+    type: "index",
+    base: 524,
+    newsKeywords: ["s&p", "s&p 500", "spx", "spy", "us 500", "wall street", "stocks", "equities"],
+  },
+  GOLD: {
+    av: "GLD",
+    fh: "GLD",
+    name: "Gold",
+    type: "commodity",
+    base: 216,
+    newsKeywords: ["gold", "xau", "xau/usd", "xauusd", "bullion", "precious metal", "gld"],
+  },
+  SILVER: {
+    av: "SLV",
+    fh: "SLV",
+    name: "Silver",
+    type: "commodity",
+    base: 27,
+    newsKeywords: ["silver", "xag", "xag/usd", "xagusd", "precious metal", "slv"],
+  },
+  GS: {
+    av: "GS",
+    fh: "GS",
+    name: "Goldman Sachs",
+    type: "stock",
+    base: 458,
+    newsKeywords: ["goldman", "goldman sachs", "gs", "banks", "banking", "financials", "wall street"],
+  },
+  MS: {
+    av: "MS",
+    fh: "MS",
+    name: "Morgan Stanley",
+    type: "stock",
+    base: 98,
+    newsKeywords: ["morgan stanley", "ms", "banks", "banking", "financials", "wall street"],
+  },
 };
 
 let marketCache = {};
 let lastUpdated = null;
 let refreshInProgress = false;
 let refreshStatus = "Booting with sample market data";
+let forexComCache = { articles: [], fetchedAt: 0 };
 
 function isFiniteNumber(value) {
   return Number.isFinite(toNumber(value));
@@ -54,6 +105,37 @@ function round(value, digits = 2) {
 function getToday(offsetDays = 0) {
   const date = new Date(Date.now() + offsetDays * 86400000);
   return date.toISOString().split("T")[0];
+}
+
+function decodeHtml(value = "") {
+  return String(value)
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripTags(value = "") {
+  return decodeHtml(String(value).replace(/<[^>]*>/g, " "));
+}
+
+function absoluteForexUrl(url) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return new URL(url, "https://www.forex.com").toString();
+}
+
+function uniqueByUrl(items) {
+  const seen = new Set();
+  return items.filter(item => {
+    const key = (item.url || item.headline || "").toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function normalizeQuote(raw) {
@@ -131,6 +213,10 @@ function buildInstrument(id, meta, quote, bars, news, source, note) {
   const signal = generateSignal(usableQuote, usableBars, meta.type);
 
   if (note) signal.reasoning.unshift(note);
+  const forexCount = (news || []).filter(item => item.source === "FOREX.com").length;
+  if (forexCount) {
+    signal.reasoning.push(`${forexCount} FOREX.com analysis item${forexCount > 1 ? "s" : ""} matched this market`);
+  }
 
   return {
     id,
@@ -413,7 +499,10 @@ async function fetchNews(symbol) {
       headline: n.headline,
       source: n.source,
       url: n.url,
+      summary: "",
       sentiment: n.sentiment || null,
+      relevance: "Company headline",
+      analysis: "Finnhub company/news feed",
     }));
   } catch (e) {
     console.error(`News error for ${symbol}:`, e.message);
@@ -421,10 +510,149 @@ async function fetchNews(symbol) {
   }
 }
 
+function parseForexComHtml(html) {
+  const articles = [];
+  const cardRegex = /<a[^>]+href=["']([^"']*\/news-and-analysis\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+
+  while ((match = cardRegex.exec(html))) {
+    const url = absoluteForexUrl(match[1]);
+    const text = stripTags(match[2]);
+    if (!text || text.length < 18 || text.length > 260) continue;
+    if (/\/tags\/|\/market-analysis\/?$|\/news-and-analysis\/?$/i.test(url)) continue;
+    if (/news and analysis|learn to trade|open an account/i.test(text)) continue;
+
+    articles.push({
+      headline: text,
+      summary: "",
+      source: "FOREX.com",
+      url,
+    });
+  }
+
+  const titleRegex = /<title>(.*?)<\/title>/i;
+  const title = titleRegex.exec(html)?.[1];
+  if (title && /market|analysis|forex|gold|stocks|indices/i.test(title)) {
+    articles.unshift({
+      headline: stripTags(title.replace(/\|.*$/g, "")),
+      summary: "",
+      source: "FOREX.com",
+      url: FOREX_COM_NEWS_URL,
+    });
+  }
+
+  return uniqueByUrl(articles).slice(0, 30);
+}
+
+async function fetchForexComFromReddit() {
+  try {
+    const { data } = await axios.get("https://www.reddit.com/user/FOREXcom/submitted.json", {
+      timeout: 8000,
+      headers: { "User-Agent": "ApexTradeDashboard/1.0" },
+      params: { limit: 25 },
+    });
+
+    return (data?.data?.children || [])
+      .map(item => item.data)
+      .filter(post => post?.title && /forex\.com/i.test(post.url || ""))
+      .map(post => ({
+        headline: post.title,
+        summary: post.selftext || "",
+        source: "FOREX.com",
+        url: post.url,
+      }));
+  } catch (e) {
+    console.error("FOREX.com Reddit fallback error:", e.message);
+    return [];
+  }
+}
+
+async function fetchForexComArticles() {
+  const cacheAgeMs = Date.now() - forexComCache.fetchedAt;
+  if (forexComCache.articles.length && cacheAgeMs < 5 * 60 * 1000) {
+    return forexComCache.articles;
+  }
+
+  const urls = uniqueByUrl([
+    { url: FOREX_COM_NEWS_URL },
+    { url: "https://www.forex.com/en-us/news-and-analysis/" },
+    { url: "https://www.forex.com/en/news-and-analysis/" },
+    { url: "https://qa-web.forex.com/en-us/news-and-analysis/" },
+  ]).map(item => item.url);
+
+  for (const url of urls) {
+    try {
+      const { data } = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          "User-Agent": "Mozilla/5.0 ApexTradeDashboard/1.0",
+          "Accept": "text/html,application/xhtml+xml",
+        },
+      });
+      const articles = parseForexComHtml(data);
+      if (articles.length) {
+        forexComCache = { articles, fetchedAt: Date.now() };
+        return articles;
+      }
+    } catch (e) {
+      console.error(`FOREX.com news error for ${url}:`, e.message);
+    }
+  }
+
+  const fallback = await fetchForexComFromReddit();
+  forexComCache = { articles: fallback, fetchedAt: Date.now() };
+  return fallback;
+}
+
+function analyzeNewsForSymbol(item, meta) {
+  const text = `${item.headline || ""} ${item.summary || ""}`.toLowerCase();
+  const directMatches = (meta.newsKeywords || []).filter(keyword => text.includes(keyword.toLowerCase()));
+  const macroKeywords = ["fed", "rates", "inflation", "cpi", "pce", "payrolls", "dollar", "yields", "treasury", "risk", "recession"];
+  const macroMatches = macroKeywords.filter(keyword => text.includes(keyword));
+
+  let relevanceScore = directMatches.length * 3 + macroMatches.length;
+  if (item.source === "FOREX.com") relevanceScore += 1;
+  if (meta.type === "index" && /stocks|equities|wall street|nasdaq|s&p|dow/i.test(text)) relevanceScore += 2;
+  if (meta.type === "commodity" && /gold|silver|xau|xag|dollar|yields|inflation/i.test(text)) relevanceScore += 2;
+  if (meta.type === "stock" && /bank|banks|financial|earnings|wall street/i.test(text)) relevanceScore += 2;
+
+  const bullishWords = ["bullish", "rally", "breakout", "higher", "gain", "surge", "support", "record", "rebound"];
+  const bearishWords = ["bearish", "selloff", "lower", "drop", "risk", "pressure", "resistance", "weak", "falls"];
+  const bullish = bullishWords.filter(word => text.includes(word)).length;
+  const bearish = bearishWords.filter(word => text.includes(word)).length;
+  const tone = bullish > bearish ? "bullish" : bearish > bullish ? "bearish" : "mixed";
+
+  return {
+    ...item,
+    sentiment: item.sentiment || tone,
+    relevanceScore,
+    relevance: directMatches.length
+      ? `Matched ${directMatches.slice(0, 3).join(", ")}`
+      : macroMatches.length
+        ? `Macro context: ${macroMatches.slice(0, 3).join(", ")}`
+        : "General market context",
+    analysis: `${tone.toUpperCase()} read - ${relevanceScore >= 5 ? "high" : relevanceScore >= 3 ? "medium" : "light"} relevance`,
+  };
+}
+
+async function fetchRelevantNews(symbol, meta) {
+  const [finnhubNews, forexArticles] = await Promise.all([
+    fetchNews(symbol),
+    fetchForexComArticles(),
+  ]);
+
+  const scored = [...forexArticles, ...finnhubNews]
+    .map(item => analyzeNewsForSymbol(item, meta))
+    .filter(item => item.source !== "FOREX.com" || item.relevanceScore >= 2)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+  return uniqueByUrl(scored).slice(0, 6);
+}
+
 async function refreshOne(id, meta) {
   const [fhQuote, news] = await Promise.all([
     fetchFHQuote(meta.fh),
-    fetchNews(meta.fh),
+    fetchRelevantNews(meta.fh, meta),
   ]);
 
   const avBars = await fetchAVDaily(meta.av);

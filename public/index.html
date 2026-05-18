@@ -4,9 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>APEXTRADE - AI Trading Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script type="importmap">
 {
   "imports": {
@@ -33,8 +30,8 @@
   --red: #ff5270;
   --gold: #f2c35d;
   --shadow: rgba(0, 0, 0, 0.36);
-  --font-mono: "DM Mono", monospace;
-  --font-body: "Inter", sans-serif;
+  --font-body: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -798,7 +795,11 @@ function MarketCard({ data, onAction }) {
             transition: { duration: 0.22 }
           }, data.news.map(news => React.createElement("div", { className: "news-item", key: news.url || news.headline },
             React.createElement("a", { href: news.url, target: "_blank", rel: "noopener" }, news.headline),
-            React.createElement("div", { className: "news-meta" }, news.source)
+            React.createElement("div", { className: "news-meta" },
+              news.source,
+              news.analysis ? ` - ${news.analysis}` : "",
+              news.relevance ? ` - ${news.relevance}` : ""
+            )
           )))
         )
       ) : null,
