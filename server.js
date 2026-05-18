@@ -88,6 +88,54 @@ let refreshInProgress = false;
 let refreshStatus = "Booting with sample market data";
 let forexComCache = { articles: [], fetchedAt: 0 };
 
+const FOREX_COM_FALLBACK_ARTICLES = [
+  {
+    headline: "Nasdaq 100 forecast: Sentiment hurt as yields surge",
+    url: "https://www.forex.com/en-us/news-and-analysis/nasdaq-100-forecast-sentiment-hurt-as-yields-surge/",
+    keywords: ["nasdaq", "nasdaq 100", "tech", "yields", "stocks"],
+  },
+  {
+    headline: "USDJPY, Dow Jones Forecast: Rising Bond Yields Push USDJPY Toward 160, Dow Jones Struggles",
+    url: "https://www.forex.com/en-us/news-and-analysis/usdjpy-dow-jones-forecast-rising-bond-yields-push-usdjpy-toward-160-dow-jones-struggles/",
+    keywords: ["dow", "dow jones", "yields", "dollar", "stocks"],
+  },
+  {
+    headline: "S&P 500 Hits Records Even as Bond Yields and Oil Prices Climb",
+    url: "https://www.forex.com/en-us/news-and-analysis/sandp-500-hits-records-even-as-bond-yields-and-oil-prices-climb/",
+    keywords: ["s&p", "s&p 500", "spx", "stocks", "yields", "oil"],
+  },
+  {
+    headline: "S&P 500 Analysis: SPX reaches 7,500 points amid optimism over the US-China meeting",
+    url: "https://www.forex.com/en-us/news-and-analysis/sp-500-analysis-spx-reaches-7500-points-amid-optimism-over-the-us-china-meeting/",
+    keywords: ["s&p", "s&p 500", "spx", "stocks"],
+  },
+  {
+    headline: "Gold forecast undermined as oil, yields and dollar apply pressure",
+    url: "https://www.forex.com/en-us/news-and-analysis/gold-forecast-undermined-as-oil-yields-and-dollar-apply-pressure/",
+    keywords: ["gold", "xau", "dollar", "yields", "inflation"],
+  },
+  {
+    headline: "USD Majors, Gold, Oil, Bitcoin, Equities Weekly Technical Outlook",
+    url: "https://www.forex.com/en-us/news-and-analysis/usd-majors-gold-oil-bitcoin-equities-weekly-technical-outlook-5-18-2026/",
+    keywords: ["gold", "equities", "stocks", "technical", "dollar", "oil"],
+  },
+  {
+    headline: "Crude Oil, Nasdaq Outlook: Oil Near $100, Nasdaq Eyes 30,000 as Markets Watch Cerebras IPO and Geopolitics",
+    url: "https://www.forex.com/en-us/news-and-analysis/crude-oil-nasdaq-outlook-oil-near-100-nasdaq-eyes-30-000-as-markets-watch-cerebras-ipo-and-geopolitics/",
+    keywords: ["nasdaq", "tech", "oil", "stocks"],
+  },
+  {
+    headline: "Bitcoin & Dow Jones Slow Near Key Resistance as Inflation Pressures Build",
+    url: "https://www.forex.com/en-us/news-and-analysis/bitcoin-and-dow-jones-slow-near-key-resistance-as-inflation-pressures-build/",
+    keywords: ["dow", "dow jones", "inflation", "resistance", "stocks"],
+  },
+].map(article => ({
+  ...article,
+  summary: article.keywords.join(" "),
+  source: "FOREX.com",
+  fallback: true,
+}));
+
 function isFiniteNumber(value) {
   return Number.isFinite(toNumber(value));
 }
@@ -599,7 +647,10 @@ async function fetchForexComArticles() {
     }
   }
 
-  const fallback = await fetchForexComFromReddit();
+  const fallback = uniqueByUrl([
+    ...await fetchForexComFromReddit(),
+    ...FOREX_COM_FALLBACK_ARTICLES,
+  ]);
   forexComCache = { articles: fallback, fetchedAt: Date.now() };
   return fallback;
 }
@@ -641,10 +692,14 @@ async function fetchRelevantNews(symbol, meta) {
     fetchForexComArticles(),
   ]);
 
-  const scored = [...forexArticles, ...finnhubNews]
+  const scored = uniqueByUrl([...forexArticles, ...FOREX_COM_FALLBACK_ARTICLES, ...finnhubNews])
     .map(item => analyzeNewsForSymbol(item, meta))
     .filter(item => item.source !== "FOREX.com" || item.relevanceScore >= 2)
-    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+    .sort((a, b) => {
+      if (a.source === "FOREX.com" && b.source !== "FOREX.com") return -1;
+      if (a.source !== "FOREX.com" && b.source === "FOREX.com") return 1;
+      return b.relevanceScore - a.relevanceScore;
+    });
 
   return uniqueByUrl(scored).slice(0, 6);
 }
