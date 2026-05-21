@@ -180,11 +180,11 @@
     </div>
   </div>
   <div class="flex items-center gap-4">
-    <button class="text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1" type="button">
+    <button id="btn-language" class="text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1" type="button">
       <span class="material-symbols-outlined text-body-lg">language</span>
       <span class="font-label-caps text-label-caps">EN</span>
     </button>
-    <button class="bg-primary text-on-primary font-label-caps text-label-caps px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition-all" type="button">Get Started</button>
+    <button id="btn-get-started" class="bg-primary text-on-primary font-label-caps text-label-caps px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition-all" type="button">Get Started</button>
     <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">account_circle</span>
   </div>
 </header>
@@ -216,21 +216,21 @@
       <div class="bg-surface-elevated terminal-border p-3 rounded-xl">
         <p class="text-body-sm font-bold text-on-surface mb-1">Upgrade to Pro</p>
         <p class="text-[10px] text-text-muted mb-2 leading-tight">Unlock advanced sentiment analytics and real-time news hooks.</p>
-        <button class="w-full text-[10px] font-bold py-1.5 border border-primary text-primary rounded-lg hover:bg-primary/10" type="button">GO PREMIUM</button>
+        <button id="btn-go-premium" class="w-full text-[10px] font-bold py-1.5 border border-primary text-primary rounded-lg hover:bg-primary/10" type="button">GO PREMIUM</button>
       </div>
       <div class="bg-surface-elevated terminal-border p-3 rounded-xl">
         <p class="text-body-sm font-bold text-on-surface mb-1">Connect TradingView</p>
         <p class="text-[10px] text-text-muted mb-2 leading-tight">Sync your watchlists and technical drawings instantly.</p>
-        <button class="w-full text-[10px] font-bold py-1.5 border border-outline text-on-surface rounded-lg hover:bg-surface-container-high" type="button">LINK ACCOUNT</button>
+        <button id="btn-link-account" class="w-full text-[10px] font-bold py-1.5 border border-outline text-on-surface rounded-lg hover:bg-surface-container-high" type="button">LINK ACCOUNT</button>
       </div>
     </div>
   </div>
   <div class="flex flex-col gap-1 pb-4">
-    <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all" href="#">
+    <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all" href="#settings">
       <span class="material-symbols-outlined">settings</span>
       <span class="hidden md:block font-label-caps text-label-caps">Settings</span>
     </a>
-    <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all" href="#">
+    <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all" href="#help">
       <span class="material-symbols-outlined">help_outline</span>
       <span class="hidden md:block font-label-caps text-label-caps">Help</span>
     </a>
@@ -252,7 +252,7 @@
         </h2>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+        <div class="top-card bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">NV</div>
             <div>
@@ -266,7 +266,7 @@
             <svg class="sparkline stroke-bull-green ml-auto mt-1" viewBox="0 0 80 24"><path d="M0 20 L10 18 L20 22 L30 15 L40 18 L50 8 L60 12 L70 4 L80 6"></path></svg>
           </div>
         </div>
-        <div class="bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+        <div class="top-card bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">NQ</div>
             <div>
@@ -280,7 +280,7 @@
             <svg class="sparkline stroke-bull-green ml-auto mt-1" viewBox="0 0 80 24"><path d="M0 15 L10 16 L20 12 L30 14 L40 10 L50 12 L60 8 L70 6 L80 4"></path></svg>
           </div>
         </div>
-        <div class="bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+        <div class="top-card bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">AU</div>
             <div>
@@ -300,10 +300,10 @@
       <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between">
         <h2 class="font-headline-sm text-headline-sm">Global Watchlist</h2>
         <div class="flex gap-2">
-          <button class="bg-surface-container-high px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:bg-surface-bright transition-colors" type="button">INDICES</button>
-          <button class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">STOCKS</button>
-          <button class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">CRYPTO</button>
-          <button class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">FOREX</button>
+          <button id="filter-indices" data-filter="Indices" class="bg-surface-container-high px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:bg-surface-bright transition-colors" type="button">INDICES</button>
+          <button id="filter-stocks" data-filter="Stocks" class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">STOCKS</button>
+          <button id="filter-crypto" data-filter="Crypto" class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">CRYPTO</button>
+          <button id="filter-forex" data-filter="Forex" class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">FOREX</button>
         </div>
       </div>
       <div class="overflow-x-auto terminal-scroll">
@@ -415,7 +415,7 @@
       </div>
       <div class="px-6 py-3 border-t border-border-subtle flex justify-between items-center">
         <span class="text-label-caps font-label-caps text-text-muted">Showing 4 of 50 assets</span>
-        <button class="text-primary font-bold text-body-sm hover:underline" type="button">View All Indices</button>
+        <button id="btn-view-all-indices" class="text-primary font-bold text-body-sm hover:underline" type="button">View All Indices</button>
       </div>
     </section>
     <section id="insight" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -431,7 +431,7 @@
             <div class="w-8 h-8 rounded-full border-2 border-surface-elevated bg-secondary-container flex items-center justify-center text-on-secondary-container text-[10px] font-bold">AS</div>
             <div class="w-8 h-8 rounded-full border-2 border-surface-elevated bg-surface-bright flex items-center justify-center text-on-surface text-[10px] font-bold">+4</div>
           </div>
-          <button class="text-primary flex items-center gap-1 font-bold text-body-md" type="button">Read Report <span class="material-symbols-outlined">arrow_forward</span></button>
+          <button id="btn-read-report" class="text-primary flex items-center gap-1 font-bold text-body-md" type="button">Read Report <span class="material-symbols-outlined">arrow_forward</span></button>
         </div>
       </div>
       <div class="bg-surface-container terminal-border rounded-xl p-6 relative overflow-hidden group">
@@ -471,6 +471,24 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+    <section id="settings" class="bg-surface-container terminal-border rounded-xl p-6">
+      <div class="flex flex-col md:flex-row md:justify-between gap-4">
+        <div>
+          <h3 class="font-headline-sm text-headline-sm mb-2">Settings</h3>
+          <p class="text-body-sm text-text-muted max-w-2xl">Customize your dashboard preferences, alerts, and behavior.</p>
+        </div>
+        <button id="btn-open-settings" class="text-primary font-bold text-body-sm hover:underline" type="button">Open Settings</button>
+      </div>
+    </section>
+    <section id="help" class="bg-surface-container terminal-border rounded-xl p-6">
+      <div class="flex flex-col md:flex-row md:justify-between gap-4">
+        <div>
+          <h3 class="font-headline-sm text-headline-sm mb-2">Help Center</h3>
+          <p class="text-body-sm text-text-muted max-w-2xl">Find quick onboarding tips, keyboard shortcuts, and product updates.</p>
+        </div>
+        <button id="btn-open-help" class="text-primary font-bold text-body-sm hover:underline" type="button">Open Help</button>
       </div>
     </section>
   </div>
@@ -537,46 +555,83 @@
       link.addEventListener('click', (event) => {
         event.preventDefault();
         const targetId = link.getAttribute('href')?.slice(1);
-        if (targetId) smoothScroll(targetId);
+        if (!targetId) {
+          showToast('Location not available yet.');
+          return;
+        }
+        if (document.getElementById(targetId)) {
+          smoothScroll(targetId);
+          showToast(`${link.textContent.trim()} opened.`);
+        } else {
+          showToast('Section coming soon.');
+        }
       });
     });
 
-    document.querySelector('button[type="button"].bg-primary')?.addEventListener('click', () => {
+    document.getElementById('btn-get-started')?.addEventListener('click', () => {
       smoothScroll('watchlist');
+      showToast('Jumping to market watchlist.');
     });
 
-    document.querySelectorAll('button').forEach((button) => {
-      const text = button.textContent?.trim() || '';
-      if (text === 'GO PREMIUM') {
-        button.addEventListener('click', () => showToast('Upgrade flow coming soon.'));
-      }
-      if (text === 'LINK ACCOUNT') {
-        button.addEventListener('click', () => showToast('TradingView connection placeholder.'));
-      }
-      if (text === 'View All Indices') {
-        button.addEventListener('click', () => showToast('Loading full indices table...'));
-      }
-      if (text.startsWith('Read Report')) {
-        button.addEventListener('click', () => showToast('Opening premium research article...'));
-      }
+    document.getElementById('btn-language')?.addEventListener('click', () => {
+      showToast('Language selector coming soon.');
     });
 
-    document.querySelectorAll('tbody tr').forEach((row, index) => {
+    document.getElementById('btn-go-premium')?.addEventListener('click', () => {
+      showToast('Upgrade flow coming soon.');
+    });
+
+    document.getElementById('btn-link-account')?.addEventListener('click', () => {
+      showToast('TradingView connection placeholder.');
+    });
+
+    document.getElementById('btn-view-all-indices')?.addEventListener('click', () => {
+      smoothScroll('watchlist');
+      showToast('Showing full indices watchlist.');
+    });
+
+    document.getElementById('btn-read-report')?.addEventListener('click', () => {
+      showToast('Opening premium research article...');
+    });
+
+    document.getElementById('btn-open-settings')?.addEventListener('click', () => {
+      smoothScroll('settings');
+      showToast('Opening settings.');
+    });
+
+    document.getElementById('btn-open-help')?.addEventListener('click', () => {
+      smoothScroll('help');
+      showToast('Opening help center.');
+    });
+
+    document.querySelectorAll('[data-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const filter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach((other) => {
+          other.classList.remove('bg-surface-container-high', 'text-on-surface');
+        });
+        button.classList.add('bg-surface-container-high', 'text-on-surface');
+        showToast(`${filter} selected.`);
+      });
+    });
+
+    document.querySelectorAll('.top-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const symbol = card.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
+        showToast(`${symbol} selected.`);
+      });
+    });
+
+    document.querySelectorAll('tbody tr').forEach((row) => {
       row.addEventListener('click', () => {
-        showToast(`Asset details panel for row ${index + 1} will be added soon.`);
+        const asset = row.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
+        showToast(`Opening details for ${asset}.`);
       });
       row.addEventListener('mouseenter', () => {
         row.style.boxShadow = 'inset 2px 0 0 #b6c4ff';
       });
       row.addEventListener('mouseleave', () => {
         row.style.boxShadow = 'none';
-      });
-    });
-
-    document.querySelectorAll('a[href="#"]').forEach((link) => {
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        showToast('Section not available yet, but coming soon.');
       });
     });
   });
