@@ -145,6 +145,27 @@
   .animate-marquee {
     animation: marquee 30s linear infinite;
   }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 60;
+    transform: translateX(-50%) translateY(28px);
+    opacity: 0;
+    pointer-events: none;
+    border: 1px solid #363A45;
+    border-radius: 12px;
+    background: rgba(16, 20, 26, 0.96);
+    color: #e0e2ec;
+    padding: 12px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+  .toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 </style>
 </head>
 <body class="bg-background">
@@ -174,19 +195,19 @@
       <span class="font-label-caps text-label-caps text-text-muted">Terminal v1.0</span>
     </div>
     <div class="flex flex-col gap-1 px-2 md:px-0">
-      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#hero">
         <span class="material-symbols-outlined">dashboard</span>
         <span class="hidden md:block font-label-caps text-label-caps">Dashboard</span>
       </a>
-      <a class="bg-primary-container/10 border-l-2 border-primary text-primary font-bold flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+      <a class="bg-primary-container/10 border-l-2 border-primary text-primary font-bold flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#watchlist">
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">show_chart</span>
         <span class="hidden md:block font-label-caps text-label-caps">Markets</span>
       </a>
-      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#insight">
         <span class="material-symbols-outlined">newspaper</span>
         <span class="hidden md:block font-label-caps text-label-caps">News</span>
       </a>
-      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#watchlist">
         <span class="material-symbols-outlined">account_balance_wallet</span>
         <span class="hidden md:block font-label-caps text-label-caps">Portfolio</span>
       </a>
@@ -216,7 +237,7 @@
   </div>
 </nav>
 <main class="ml-16 md:ml-60 pt-12 min-h-screen">
-  <div class="w-full border-b border-border-subtle bg-background p-8 text-center flex flex-col items-center">
+  <div id="hero" class="w-full border-b border-border-subtle bg-background p-8 text-center flex flex-col items-center">
     <h1 class="font-display-lg text-display-lg text-on-surface mb-2 flex items-center gap-2">
       Markets, everywhere
       <span class="material-symbols-outlined text-4xl">expand_more</span>
@@ -275,7 +296,7 @@
         </div>
       </div>
     </section>
-    <section class="bg-surface-container terminal-border rounded-xl overflow-hidden">
+    <section id="watchlist" class="bg-surface-container terminal-border rounded-xl overflow-hidden">
       <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between">
         <h2 class="font-headline-sm text-headline-sm">Global Watchlist</h2>
         <div class="flex gap-2">
@@ -397,7 +418,7 @@
         <button class="text-primary font-bold text-body-sm hover:underline" type="button">View All Indices</button>
       </div>
     </section>
-    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <section id="insight" class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div class="md:col-span-2 bg-surface-elevated terminal-border rounded-xl p-6 flex flex-col justify-between">
         <div>
           <div class="inline-block px-2 py-0.5 bg-tertiary-container text-on-tertiary-container text-[10px] font-bold rounded mb-4">PREMIUM INSIGHT</div>
@@ -484,21 +505,78 @@
     </div>
   </div>
 </main>
+<div id="toast" class="toast"></div>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.querySelector('input[type="text"]');
+    const toast = document.getElementById('toast');
+    const showToast = (message) => {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add('visible');
+      window.clearTimeout(toast.hideTimeout);
+      toast.hideTimeout = window.setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 2600);
+    };
+
+    const smoothScroll = (targetId) => {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         searchInput?.focus();
       }
     });
-    document.querySelectorAll('tbody tr').forEach((row) => {
+
+    document.querySelectorAll('nav a[href^="#"]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const targetId = link.getAttribute('href')?.slice(1);
+        if (targetId) smoothScroll(targetId);
+      });
+    });
+
+    document.querySelector('button[type="button"].bg-primary')?.addEventListener('click', () => {
+      smoothScroll('watchlist');
+    });
+
+    document.querySelectorAll('button').forEach((button) => {
+      const text = button.textContent?.trim() || '';
+      if (text === 'GO PREMIUM') {
+        button.addEventListener('click', () => showToast('Upgrade flow coming soon.'));
+      }
+      if (text === 'LINK ACCOUNT') {
+        button.addEventListener('click', () => showToast('TradingView connection placeholder.'));
+      }
+      if (text === 'View All Indices') {
+        button.addEventListener('click', () => showToast('Loading full indices table...'));
+      }
+      if (text.startsWith('Read Report')) {
+        button.addEventListener('click', () => showToast('Opening premium research article...'));
+      }
+    });
+
+    document.querySelectorAll('tbody tr').forEach((row, index) => {
+      row.addEventListener('click', () => {
+        showToast(`Asset details panel for row ${index + 1} will be added soon.`);
+      });
       row.addEventListener('mouseenter', () => {
         row.style.boxShadow = 'inset 2px 0 0 #b6c4ff';
       });
       row.addEventListener('mouseleave', () => {
         row.style.boxShadow = 'none';
+      });
+    });
+
+    document.querySelectorAll('a[href="#"]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        showToast('Section not available yet, but coming soon.');
       });
     });
   });
