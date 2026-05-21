@@ -1,951 +1,507 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html class="dark" lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>APEXTRADE - AI Trading Dashboard</title>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
-  }
-}
+<title>AIFX Terminal | Markets</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist.css" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-error": "#690005",
+          "on-tertiary-container": "#fff4f1",
+          "error-container": "#93000a",
+          "surface-container-highest": "#31353c",
+          "on-primary-fixed-variant": "#003ab3",
+          "primary-container": "#2962ff",
+          "secondary-container": "#434653",
+          "tertiary-container": "#c74500",
+          "secondary-fixed-dim": "#c3c6d5",
+          "tertiary-fixed": "#ffdbcf",
+          background: "#10141a",
+          "on-surface-variant": "#c3c5d8",
+          "outline-variant": "#434656",
+          "inverse-on-surface": "#2d3138",
+          "on-primary-fixed": "#001550",
+          "on-secondary-container": "#b1b4c4",
+          "surface-dim": "#10141a",
+          "on-tertiary-fixed": "#380d00",
+          "surface-bright": "#363941",
+          "on-secondary": "#2c303c",
+          "bull-green": "#089981",
+          "surface-container-low": "#181c22",
+          "secondary": "#c3c6d5",
+          "border-subtle": "#363A45",
+          "primary-fixed-dim": "#b6c4ff",
+          "surface-container": "#1c2026",
+          "surface-container-lowest": "#0a0e15",
+          "surface-container-high": "#262a31",
+          "on-surface": "#e0e2ec",
+          "surface-elevated": "#1E222D",
+          "on-error-container": "#ffdad6",
+          surface: "#10141a",
+          "inverse-surface": "#e0e2ec",
+          "on-tertiary-fixed-variant": "#802a00",
+          outline: "#8d90a2",
+          "on-background": "#e0e2ec",
+          "on-secondary-fixed-variant": "#434653",
+          "primary": "#b6c4ff",
+          "surface-tint": "#b6c4ff",
+          "text-muted": "#868993",
+          "surface-variant": "#31353c",
+          "on-tertiary": "#5b1b00",
+          error: "#ffb4ab",
+          "primary-fixed": "#dce1ff",
+          "on-secondary-fixed": "#171b26",
+          "bear-red": "#F23645",
+          "tertiary": "#ffb59a",
+          "on-primary-container": "#f7f5ff",
+          "inverse-primary": "#004ee8",
+          "on-primary": "#002780",
+          "secondary-fixed": "#dfe2f2",
+          "tertiary-fixed-dim": "#ffb59a",
+        },
+        borderRadius: {
+          DEFAULT: "0.125rem",
+          lg: "0.25rem",
+          xl: "0.5rem",
+          full: "0.75rem",
+        },
+        spacing: {
+          gutter: "1px",
+          "component-gap-sm": "8px",
+          "section-gap": "24px",
+          "container-padding": "16px",
+          unit: "4px",
+          "component-gap-xs": "4px",
+        },
+        fontFamily: {
+          "headline-md": ["Geist"],
+          "data-mono": ["JetBrains Mono"],
+          "display-lg": ["Geist"],
+          "body-lg": ["Geist"],
+          "body-md": ["Geist"],
+          "body-sm": ["Geist"],
+          "headline-sm": ["Geist"],
+          "label-caps": ["Geist"],
+        },
+        fontSize: {
+          "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+          "data-mono": ["13px", { lineHeight: "18px", fontWeight: "500" }],
+          "display-lg": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
+          "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+          "body-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }],
+          "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }],
+          "label-caps": ["11px", { lineHeight: "14px", letterSpacing: "0.05em", fontWeight: "700" }],
+        },
+      },
+    },
+  };
 </script>
 <style>
-:root {
-  --bg: #07090d;
-  --bg-soft: #0b1117;
-  --surface: #0f151d;
-  --surface-2: #141b24;
-  --line: #223141;
-  --line-soft: rgba(255, 255, 255, 0.07);
-  --text: #edf4f8;
-  --muted: #8a9baa;
-  --subtle: #607384;
-  --cyan: #25d7ff;
-  --green: #1df29a;
-  --red: #ff5270;
-  --gold: #f2c35d;
-  --shadow: rgba(0, 0, 0, 0.36);
-  --font-body: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-mono: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
-}
-
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(37, 215, 255, 0.12), transparent 34rem),
-    linear-gradient(180deg, #080b10 0%, var(--bg) 54%, #06080b 100%);
-  color: var(--text);
-  font-family: var(--font-body);
-  overflow-x: hidden;
-}
-button, input { font: inherit; }
-button { cursor: pointer; }
-
-.app-shell { min-height: 100vh; }
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 16px 28px;
-  background: rgba(7, 9, 13, 0.82);
-  border-bottom: 1px solid var(--line-soft);
-  backdrop-filter: blur(18px);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(37, 215, 255, 0.5);
-  border-radius: 8px;
-  color: var(--cyan);
-  background: rgba(37, 215, 255, 0.09);
-  font-weight: 800;
-  box-shadow: 0 0 28px rgba(37, 215, 255, 0.12);
-}
-.brand-title {
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-.brand-title span { color: var(--cyan); }
-.brand-subtitle {
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-}
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.status-pill, .refresh-btn {
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(15, 21, 29, 0.75);
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-}
-.refresh-btn {
-  color: var(--text);
-  transition: border-color 180ms ease, color 180ms ease, transform 180ms ease;
-}
-.refresh-btn:hover {
-  color: var(--cyan);
-  border-color: rgba(37, 215, 255, 0.55);
-  transform: translateY(-1px);
-}
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--green);
-  box-shadow: 0 0 12px var(--green);
-}
-
-.dashboard {
-  width: min(1560px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: 28px 0 36px;
-}
-.overview {
-  display: grid;
-  grid-template-columns: minmax(280px, 1.1fr) minmax(340px, 1.9fr);
-  gap: 18px;
-  margin-bottom: 18px;
-}
-.command-panel, .metrics-panel {
-  border: 1px solid var(--line-soft);
-  background: linear-gradient(180deg, rgba(16, 23, 32, 0.88), rgba(12, 17, 24, 0.88));
-  border-radius: 8px;
-  box-shadow: 0 18px 48px var(--shadow);
-}
-.command-panel {
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 28px;
-  min-height: 230px;
-}
-.kicker {
-  color: var(--cyan);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0;
-  margin-bottom: 10px;
-}
-.headline {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 4.7rem);
-  line-height: 0.92;
-  letter-spacing: 0;
-  max-width: 760px;
-}
-.headline span { color: var(--muted); }
-.panel-copy {
-  margin: 14px 0 0;
-  color: var(--muted);
-  line-height: 1.55;
-  max-width: 660px;
-}
-.panel-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-}
-.metrics-panel {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-  overflow: hidden;
-}
-.metric {
-  padding: 20px;
-  border-right: 1px solid var(--line-soft);
-  min-height: 115px;
-}
-.metric:last-child { border-right: 0; }
-.metric-label {
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  margin-bottom: 14px;
-}
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: 1.8rem;
-  font-weight: 500;
-}
-.metric-note {
-  color: var(--muted);
-  font-size: 0.78rem;
-  margin-top: 6px;
-}
-
-.market-toolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  margin: 20px 0 16px;
-}
-.tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--line-soft);
-  border-radius: 8px;
-  background: rgba(12, 17, 24, 0.8);
-}
-.tab {
-  border: 0;
-  border-radius: 6px;
-  padding: 9px 13px;
-  background: transparent;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  transition: color 180ms ease, background 180ms ease;
-}
-.tab.active {
-  background: rgba(37, 215, 255, 0.12);
-  color: var(--cyan);
-}
-.market-count {
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: 16px;
-}
-.card {
-  --accent: var(--cyan);
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--line-soft);
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(19, 27, 36, 0.92), rgba(11, 16, 22, 0.96));
-  min-height: 410px;
-  padding: 18px;
-  box-shadow: 0 16px 36px var(--shadow);
-}
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.8;
-}
-.card-head, .price-row, .signal-row, .action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.symbol {
-  font-size: 1.45rem;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-.name {
-  color: var(--subtle);
-  font-size: 0.78rem;
-  margin-top: 3px;
-}
-.type {
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 999px;
-  padding: 5px 9px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  text-align: center;
-}
-.source-badge {
-  margin-top: 6px;
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  text-align: right;
-}
-.price-row { margin-top: 18px; align-items: baseline; }
-.price {
-  font-family: var(--font-mono);
-  font-size: 1.8rem;
-}
-.change {
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-}
-.up { color: var(--green); }
-.down { color: var(--red); }
-.flat { color: var(--muted); }
-.ohlc {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-}
-.ohlc div, .technical {
-  background: rgba(255,255,255,0.035);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 8px;
-  padding: 9px;
-  min-width: 0;
-}
-.mini-label {
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  margin-bottom: 4px;
-}
-.mini-value {
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.chart {
-  height: 70px;
-  margin: 18px 0;
-}
-.chart canvas {
-  width: 100%;
-  height: 70px;
-  display: block;
-}
-.signal-row {
-  border: 1px solid color-mix(in srgb, var(--signal) 38%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--signal) 8%, transparent);
-  padding: 12px;
-}
-.signal-title {
-  color: var(--signal);
-  font-weight: 800;
-  letter-spacing: 0;
-}
-.signal-sub {
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  margin-top: 3px;
-}
-.confidence {
-  text-align: right;
-  color: var(--signal);
-  font-family: var(--font-mono);
-  font-size: 1.2rem;
-}
-.bar {
-  height: 5px;
-  background: rgba(255,255,255,0.07);
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 12px 0 14px;
-}
-.bar span {
-  display: block;
-  height: 100%;
-  width: var(--confidence);
-  background: var(--signal);
-  border-radius: inherit;
-}
-.technicals {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.technical.wide { grid-column: span 2; }
-.disclosure {
-  width: 100%;
-  border: 0;
-  color: var(--muted);
-  background: transparent;
-  display: flex;
-  justify-content: space-between;
-  padding: 9px 0;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-}
-.detail-list, .news-list {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-.detail-list li, .news-item {
-  border-top: 1px solid var(--line-soft);
-  padding: 8px 0;
-  line-height: 1.45;
-}
-.news-item a {
-  color: var(--text);
-  text-decoration: none;
-}
-.news-item a:hover { color: var(--cyan); }
-.news-meta {
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  margin-top: 4px;
-}
-.action-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin-top: 14px;
-}
-.trade-btn {
-  border: 1px solid color-mix(in srgb, var(--tone) 36%, transparent);
-  border-radius: 8px;
-  color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 10%, transparent);
-  padding: 11px;
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  transition: transform 180ms ease, background 180ms ease;
-}
-.trade-btn:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--tone) 17%, transparent);
-}
-.state {
-  min-height: 300px;
-  grid-column: 1 / -1;
-  display: grid;
-  place-items: center;
-  gap: 12px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  text-align: center;
-}
-.spinner {
-  width: 26px;
-  height: 26px;
-  border: 2px solid var(--line);
-  border-top-color: var(--cyan);
-  border-radius: 50%;
-  animation: spin 800ms linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  z-index: 40;
-  transform: translateX(-50%) translateY(28px);
-  opacity: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(13, 19, 27, 0.96);
-  color: var(--text);
-  padding: 12px 18px;
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-  pointer-events: none;
-}
-footer {
-  width: min(1560px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: 0 0 26px;
-  color: var(--subtle);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-}
-footer b { color: var(--cyan); }
-
-@media (max-width: 980px) {
-  .overview { grid-template-columns: 1fr; }
-  .metrics-panel { grid-template-columns: repeat(2, 1fr); }
-  .metric:nth-child(2) { border-right: 0; }
-  .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line-soft); }
-}
-@media (max-width: 720px) {
-  .topbar { align-items: flex-start; padding: 14px 16px; }
-  .dashboard, footer { width: min(100% - 28px, 1560px); }
-  .market-toolbar, .topbar { flex-direction: column; }
-  .topbar-actions, .tabs { width: 100%; }
-  .tabs { overflow-x: auto; }
-  .tab { flex: 1 0 auto; }
-  .grid { grid-template-columns: 1fr; }
-  .ohlc, .technicals { grid-template-columns: repeat(2, 1fr); }
-  .technical.wide { grid-column: span 1; }
-}
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: #10141a;
+    color: #e0e2ec;
+    font-family: 'Geist', sans-serif;
+    overflow-x: hidden;
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+  }
+  .sparkline {
+    width: 80px;
+    height: 24px;
+    stroke-width: 1.5;
+    fill: none;
+  }
+  .terminal-border {
+    border: 1px solid #363A45;
+  }
+  .terminal-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .terminal-scroll::-webkit-scrollbar-thumb {
+    background: #363A45;
+    border-radius: 10px;
+  }
+  .terminal-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
 </style>
 </head>
-<body>
-<div id="root"></div>
-
-<script type="module">
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { motion, AnimatePresence } from "https://esm.sh/framer-motion@11.0.24?external=react,react-dom";
-import { gsap } from "https://esm.sh/gsap@3.12.5";
-
-const { Fragment } = React;
-
-const TYPE_COLORS = {
-  index: "#25d7ff",
-  commodity: "#f2c35d",
-  stock: "#1df29a",
-};
-
-const TABS = [
-  ["all", "All Markets"],
-  ["index", "Indices"],
-  ["commodity", "Commodities"],
-  ["stock", "Stocks"],
-];
-
-const fmtPrice = value => Number.isFinite(value)
-  ? value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  : "--";
-
-const signalTone = signal => {
-  if ((signal || "").includes("BUY")) return "var(--green)";
-  if ((signal || "").includes("SELL")) return "var(--red)";
-  return "var(--muted)";
-};
-
-function App() {
-  const [marketData, setMarketData] = useState({});
-  const [currentTab, setCurrentTab] = useState("all");
-  const [lastUpdate, setLastUpdate] = useState("Connecting...");
-  const [serverStatus, setServerStatus] = useState("Starting data engine...");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
-  const toastRef = useRef(null);
-  const toastTimerRef = useRef(null);
-
-  const items = useMemo(() => {
-    return Object.values(marketData).filter(item => currentTab === "all" || item.type === currentTab);
-  }, [marketData, currentTab]);
-
-  const summary = useMemo(() => getSummary(Object.values(marketData)), [marketData]);
-
-  async function fetchMarket() {
-    try {
-      setError("");
-      const res = await fetch("/api/market");
-      if (!res.ok) throw new Error(`Market API returned ${res.status}`);
-      const json = await res.json();
-      setMarketData(json.data || {});
-      setServerStatus(json.status || (json.refreshInProgress ? "Refreshing live data..." : "Snapshot ready"));
-      setLastUpdate(json.lastUpdated ? `Updated ${new Date(json.lastUpdated).toLocaleTimeString()}` : "Awaiting first refresh");
-    } catch (err) {
-      setError("Market API is not reachable from this page. Check the Railway deploy status and /health route.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function triggerRefresh() {
-    showToast("Refresh queued. Market data will update shortly.");
-    await fetch("/api/refresh", { method: "POST" });
-    setTimeout(fetchMarket, 15000);
-  }
-
-  function showToast(message) {
-    setToast(message);
-    window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToast(""), 3000);
-  }
-
-  useEffect(() => {
-    fetchMarket();
-    const timer = window.setInterval(fetchMarket, 5 * 60 * 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    gsap.fromTo(".topbar", { y: -18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" });
-    gsap.fromTo(".command-panel, .metrics-panel", { y: 20, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.7, ease: "power3.out" });
-    gsap.to(".live-dot", { scale: 1.45, opacity: 0.45, repeat: -1, yoyo: true, duration: 0.9, ease: "sine.inOut" });
-  }, []);
-
-  useEffect(() => {
-    gsap.fromTo(".card", { y: 12, opacity: 0.78 }, { y: 0, opacity: 1, stagger: 0.035, duration: 0.42, ease: "power2.out" });
-  }, [currentTab, items.length]);
-
-  useEffect(() => {
-    if (!toastRef.current) return;
-    if (toast) {
-      gsap.to(toastRef.current, { y: 0, opacity: 1, duration: 0.25, ease: "power2.out" });
-    } else {
-      gsap.to(toastRef.current, { y: 28, opacity: 0, duration: 0.25, ease: "power2.in" });
-    }
-  }, [toast]);
-
-  return (
-    React.createElement("div", { className: "app-shell" },
-        React.createElement(Header, { lastUpdate, serverStatus, onRefresh: triggerRefresh }),
-      React.createElement("main", { className: "dashboard" },
-        React.createElement(Overview, { summary, lastUpdate }),
-        React.createElement(MarketToolbar, { currentTab, onTab: setCurrentTab, count: items.length }),
-        React.createElement("section", { className: "grid", "aria-live": "polite" },
-          loading && React.createElement(LoadingState, { message: "Fetching market data..." }),
-          !loading && error && React.createElement(EmptyState, { message: error, tone: "danger" }),
-          !loading && !error && !items.length && React.createElement(EmptyState, { message: "No data yet. The server is still building its first market snapshot." }),
-          React.createElement(AnimatePresence, null,
-            !loading && !error && items.map(item =>
-              React.createElement(MarketCard, { key: item.id, data: item, onAction: showToast })
-            )
-          )
-        )
-      ),
-      React.createElement("footer", null,
-        React.createElement("b", null, "APEXTRADE"),
-        " - AI-powered market analysis | Informational only, not financial advice."
-      ),
-      React.createElement("div", { className: "toast", ref: toastRef }, toast)
-    )
-  );
-}
-
-function Header({ lastUpdate, serverStatus, onRefresh }) {
-  return (
-    React.createElement("header", { className: "topbar" },
-      React.createElement("div", { className: "brand" },
-        React.createElement("div", { className: "brand-mark" }, "A"),
-        React.createElement("div", null,
-          React.createElement("div", { className: "brand-title" }, "APEX", React.createElement("span", null, "TRADE")),
-          React.createElement("div", { className: "brand-subtitle" }, "AI market command center")
-        )
-      ),
-      React.createElement("div", { className: "topbar-actions" },
-        React.createElement("div", { className: "status-pill" }, React.createElement("span", { className: "live-dot" }), "LIVE"),
-        React.createElement("div", { className: "status-pill" }, serverStatus),
-        React.createElement("div", { className: "status-pill" }, lastUpdate),
-        React.createElement("button", { className: "refresh-btn", onClick: onRefresh }, "Refresh")
-      )
-    )
-  );
-}
-
-function Overview({ summary, lastUpdate }) {
-  return (
-    React.createElement("section", { className: "overview" },
-      React.createElement("div", { className: "command-panel" },
-        React.createElement("div", null,
-          React.createElement("div", { className: "kicker" }, "REAL-TIME SIGNAL BOARD"),
-          React.createElement("h1", { className: "headline" }, "Market clarity ", React.createElement("span", null, "without the noise.")),
-          React.createElement("p", { className: "panel-copy" },
-            "Track indices, commodities, and financial stocks with focused signal strength, compact technicals, and cleaner execution cues."
-          )
-        ),
-        React.createElement("div", { className: "panel-footer" },
-          React.createElement("span", null, lastUpdate),
-          React.createElement("span", null, "Auto refresh: 5m")
-        )
-      ),
-      React.createElement("div", { className: "metrics-panel" },
-        React.createElement(Metric, { label: "Markets", value: summary.total, note: "symbols tracked" }),
-        React.createElement(Metric, { label: "Bullish", value: summary.buys, note: "buy-side signals" }),
-        React.createElement(Metric, { label: "Bearish", value: summary.sells, note: "sell-side signals" }),
-        React.createElement(Metric, { label: "Avg Confidence", value: `${summary.avgConfidence}%`, note: "signal conviction" })
-      )
-    )
-  );
-}
-
-function Metric({ label, value, note }) {
-  return React.createElement("div", { className: "metric" },
-    React.createElement("div", { className: "metric-label" }, label),
-    React.createElement("div", { className: "metric-value" }, value),
-    React.createElement("div", { className: "metric-note" }, note)
-  );
-}
-
-function MarketToolbar({ currentTab, onTab, count }) {
-  return (
-    React.createElement("div", { className: "market-toolbar" },
-      React.createElement("div", { className: "tabs", role: "tablist" },
-        TABS.map(([id, label]) => React.createElement("button", {
-          key: id,
-          className: `tab ${currentTab === id ? "active" : ""}`,
-          onClick: () => onTab(id),
-          role: "tab",
-          "aria-selected": currentTab === id
-        }, label))
-      ),
-      React.createElement("div", { className: "market-count" }, `${count} visible instruments`)
-    )
-  );
-}
-
-function MarketCard({ data, onAction }) {
-  const [reasoningOpen, setReasoningOpen] = useState(false);
-  const [newsOpen, setNewsOpen] = useState(false);
-  const quote = data.quote;
-  const signal = data.signal || {};
-  const sigClass = signal.signal || "NEUTRAL";
-  const accent = TYPE_COLORS[data.type] || TYPE_COLORS.index;
-  const tone = signalTone(sigClass);
-  const changeClass = !quote ? "flat" : quote.changePct > 0 ? "up" : quote.changePct < 0 ? "down" : "flat";
-  const change = quote ? `${quote.changePct >= 0 ? "+" : ""}${quote.changePct.toFixed(2)}%` : "--";
-  const price = quote ? fmtPrice(quote.price) : "--";
-  const sourceLabel = data.source === "live" ? "LIVE DATA" : "SAMPLE DATA";
-
-  return (
-    React.createElement(motion.article, {
-      className: "card",
-      style: { "--accent": accent, "--signal": tone, "--confidence": `${signal.confidence || 50}%` },
-      layout: true,
-      initial: { opacity: 0, y: 18, scale: 0.985 },
-      animate: { opacity: 1, y: 0, scale: 1 },
-      exit: { opacity: 0, y: 10, scale: 0.98 },
-      whileHover: { y: -4, borderColor: accent },
-      transition: { duration: 0.32, ease: "easeOut" }
-    },
-      React.createElement("div", { className: "card-head" },
-        React.createElement("div", null,
-          React.createElement("div", { className: "symbol" }, data.id),
-          React.createElement("div", { className: "name" }, data.name)
-        ),
-        React.createElement("div", null,
-          React.createElement("div", { className: "type" }, data.type),
-          React.createElement("div", { className: "source-badge" }, sourceLabel)
-        )
-      ),
-      React.createElement("div", { className: "price-row" },
-        React.createElement("div", { className: "price" }, price),
-        React.createElement("div", { className: `change ${changeClass}` }, change)
-      ),
-      quote ? React.createElement(Ohlc, { quote }) : React.createElement("div", { className: "ohlc" },
-        React.createElement("div", { style: { gridColumn: "1 / -1" } },
-          React.createElement("div", { className: "mini-label" }, "QUOTE"),
-          React.createElement("div", { className: "mini-value" }, "No quote data available")
-        )
-      ),
-      React.createElement(MiniChart, { data }),
-      React.createElement("div", { className: "signal-row" },
-        React.createElement("div", null,
-          React.createElement("div", { className: "signal-title" }, sigClass),
-          React.createElement("div", { className: "signal-sub" }, "AI SIGNAL")
-        ),
-        React.createElement("div", { className: "confidence" }, `${signal.confidence || 50}%`)
-      ),
-      React.createElement("div", { className: "bar" }, React.createElement("span", null)),
-      React.createElement(Technicals, { signal }),
-      React.createElement(Disclosure, {
-        label: `AI reasoning (${(signal.reasoning || []).length})`,
-        open: reasoningOpen,
-        onClick: () => setReasoningOpen(!reasoningOpen)
-      }),
-      React.createElement(AnimatePresence, null,
-        reasoningOpen && React.createElement(motion.ul, {
-          className: "detail-list",
-          initial: { height: 0, opacity: 0 },
-          animate: { height: "auto", opacity: 1 },
-          exit: { height: 0, opacity: 0 },
-          transition: { duration: 0.22 }
-        }, (signal.reasoning || ["Insufficient data"]).map(item => React.createElement("li", { key: item }, item)))
-      ),
-      data.news?.length ? React.createElement(Fragment, null,
-        React.createElement(Disclosure, {
-          label: `Latest news (${data.news.length})`,
-          open: newsOpen,
-          onClick: () => setNewsOpen(!newsOpen)
-        }),
-        React.createElement(AnimatePresence, null,
-          newsOpen && React.createElement(motion.div, {
-            className: "news-list",
-            initial: { height: 0, opacity: 0 },
-            animate: { height: "auto", opacity: 1 },
-            exit: { height: 0, opacity: 0 },
-            transition: { duration: 0.22 }
-          }, data.news.map(news => React.createElement("div", { className: "news-item", key: news.url || news.headline },
-            React.createElement("a", { href: news.url, target: "_blank", rel: "noopener" }, news.headline),
-            React.createElement("div", { className: "news-meta" },
-              news.source,
-              news.analysis ? ` - ${news.analysis}` : "",
-              news.relevance ? ` - ${news.relevance}` : ""
-            )
-          )))
-        )
-      ) : null,
-      React.createElement("div", { className: "action-row" },
-        React.createElement("button", {
-          className: "trade-btn",
-          style: { "--tone": "var(--green)" },
-          onClick: () => onAction(`BUY signal noted - ${data.id} @ $${price}`)
-        }, "Buy"),
-        React.createElement("button", {
-          className: "trade-btn",
-          style: { "--tone": "var(--red)" },
-          onClick: () => onAction(`SELL signal noted - ${data.id} @ $${price}`)
-        }, "Sell")
-      )
-    )
-  );
-}
-
-function Ohlc({ quote }) {
-  return React.createElement("div", { className: "ohlc" },
-    [["O", quote.open], ["H", quote.high], ["L", quote.low], ["PC", quote.prevClose]].map(([label, value]) =>
-      React.createElement("div", { key: label },
-        React.createElement("div", { className: "mini-label" }, label),
-        React.createElement("div", { className: "mini-value" }, fmtPrice(value))
-      )
-    )
-  );
-}
-
-function MiniChart({ data }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !data.bars || data.bars.length < 2) return;
-    drawChart(canvas, data.bars);
-  }, [data]);
-
-  return React.createElement("div", { className: "chart" }, React.createElement("canvas", { ref: canvasRef, "aria-label": `${data.id} mini price chart` }));
-}
-
-function Technicals({ signal }) {
-  return React.createElement("div", { className: "technicals" },
-    React.createElement(Technical, { label: "RSI 14", value: signal.rsi ?? "--", tone: rsiColor(signal.rsi) }),
-    React.createElement(Technical, { label: "EMA 9", value: signal.ema9 ?? "--" }),
-    React.createElement(Technical, { label: "EMA 21", value: signal.ema21 ?? "--" }),
-    React.createElement(Technical, { label: "Vol Ratio", value: `${signal.volRatio ?? "--"}x`, tone: parseFloat(signal.volRatio) > 1.3 ? "var(--green)" : "var(--muted)" }),
-    React.createElement(Technical, { label: "Seasonal", value: signal.seasonal ?? "--" }),
-    React.createElement(Technical, { label: "AI Score", value: `${signal.score ?? "--"} / 4`, tone: (signal.score || 0) >= 0 ? "var(--green)" : "var(--red)" })
-  );
-}
-
-function Technical({ label, value, tone }) {
-  return React.createElement("div", { className: "technical" },
-    React.createElement("div", { className: "mini-label" }, label),
-    React.createElement("div", { className: "mini-value", style: { color: tone || "var(--text)" } }, value)
-  );
-}
-
-function Disclosure({ label, open, onClick }) {
-  return React.createElement("button", { className: "disclosure", onClick },
-    React.createElement("span", null, label),
-    React.createElement("span", null, open ? "Close" : "Open")
-  );
-}
-
-function LoadingState({ message }) {
-  return React.createElement("div", { className: "state" },
-    React.createElement("div", { className: "spinner" }),
-    React.createElement("div", null, message)
-  );
-}
-
-function EmptyState({ message, tone }) {
-  return React.createElement("div", { className: "state", style: { color: tone === "danger" ? "var(--red)" : "var(--muted)" } }, message);
-}
-
-function getSummary(items) {
-  const total = items.length;
-  const buys = items.filter(item => (item.signal?.signal || "").includes("BUY")).length;
-  const sells = items.filter(item => (item.signal?.signal || "").includes("SELL")).length;
-  const confidences = items.map(item => item.signal?.confidence).filter(Number.isFinite);
-  const avgConfidence = confidences.length
-    ? Math.round(confidences.reduce((sum, value) => sum + value, 0) / confidences.length)
-    : 0;
-  return { total, buys, sells, avgConfidence };
-}
-
-function rsiColor(rsi) {
-  if (rsi == null) return "var(--muted)";
-  if (rsi < 30) return "var(--green)";
-  if (rsi > 70) return "var(--red)";
-  return "var(--text)";
-}
-
-function drawChart(canvas, bars) {
-  const ctx = canvas.getContext("2d");
-  const width = Math.max(1, canvas.offsetWidth);
-  const height = 70;
-  const scale = window.devicePixelRatio || 1;
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  ctx.setTransform(scale, 0, 0, scale, 0, 0);
-
-  const closes = bars.map(bar => bar.close).filter(Number.isFinite);
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
-  const range = max - min || 1;
-  const isUp = closes[closes.length - 1] >= closes[0];
-  const color = isUp ? "#1df29a" : "#ff5270";
-
-  ctx.clearRect(0, 0, width, height);
-  ctx.strokeStyle = "rgba(255,255,255,0.06)";
-  ctx.lineWidth = 1;
-  [18, 36, 54].forEach(y => {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
+<body class="bg-background">
+<header class="fixed top-0 left-0 right-0 h-12 z-50 flex justify-between items-center px-4 border-b border-border-subtle bg-background select-none">
+  <div class="flex items-center gap-6">
+    <span class="text-headline-sm font-headline-md font-bold text-on-surface">APEX</span>
+    <div class="hidden md:flex items-center gap-4">
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-body-sm">search</span>
+        <input class="bg-surface-container-high border-none rounded-lg pl-8 pr-4 py-1 text-body-sm w-64 focus:ring-1 focus:ring-primary text-on-surface" placeholder="Search (Ctrl+K)" type="text" />
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <button class="text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1" type="button">
+      <span class="material-symbols-outlined text-body-lg">language</span>
+      <span class="font-label-caps text-label-caps">EN</span>
+    </button>
+    <button class="bg-primary text-on-primary font-label-caps text-label-caps px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition-all" type="button">Get Started</button>
+    <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">account_circle</span>
+  </div>
+</header>
+<nav class="fixed left-0 top-12 bottom-0 w-16 md:w-60 z-40 flex flex-col justify-between border-r border-border-subtle bg-surface-container overflow-y-auto terminal-scroll">
+  <div class="flex flex-col pt-4">
+    <div class="hidden md:flex px-4 py-2 flex-col gap-1 mb-4">
+      <span class="font-headline-sm text-headline-sm font-black text-primary">APEX</span>
+      <span class="font-label-caps text-label-caps text-text-muted">Terminal v1.0</span>
+    </div>
+    <div class="flex flex-col gap-1 px-2 md:px-0">
+      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span class="hidden md:block font-label-caps text-label-caps">Dashboard</span>
+      </a>
+      <a class="bg-primary-container/10 border-l-2 border-primary text-primary font-bold flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">show_chart</span>
+        <span class="hidden md:block font-label-caps text-label-caps">Markets</span>
+      </a>
+      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+        <span class="material-symbols-outlined">newspaper</span>
+        <span class="hidden md:block font-label-caps text-label-caps">News</span>
+      </a>
+      <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all duration-200" href="#">
+        <span class="material-symbols-outlined">account_balance_wallet</span>
+        <span class="hidden md:block font-label-caps text-label-caps">Portfolio</span>
+      </a>
+    </div>
+    <div class="mt-8 px-4 hidden md:flex flex-col gap-3">
+      <div class="bg-surface-elevated terminal-border p-3 rounded-xl">
+        <p class="text-body-sm font-bold text-on-surface mb-1">Upgrade to Pro</p>
+        <p class="text-[10px] text-text-muted mb-2 leading-tight">Unlock advanced sentiment analytics and real-time news hooks.</p>
+        <button class="w-full text-[10px] font-bold py-1.5 border border-primary text-primary rounded-lg hover:bg-primary/10" type="button">GO PREMIUM</button>
+      </div>
+      <div class="bg-surface-elevated terminal-border p-3 rounded-xl">
+        <p class="text-body-sm font-bold text-on-surface mb-1">Connect TradingView</p>
+        <p class="text-[10px] text-text-muted mb-2 leading-tight">Sync your watchlists and technical drawings instantly.</p>
+        <button class="w-full text-[10px] font-bold py-1.5 border border-outline text-on-surface rounded-lg hover:bg-surface-container-high" type="button">LINK ACCOUNT</button>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col gap-1 pb-4">
+    <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all" href="#">
+      <span class="material-symbols-outlined">settings</span>
+      <span class="hidden md:block font-label-caps text-label-caps">Settings</span>
+    </a>
+    <a class="text-text-muted hover:text-on-surface flex items-center px-4 py-3 gap-3 transition-all" href="#">
+      <span class="material-symbols-outlined">help_outline</span>
+      <span class="hidden md:block font-label-caps text-label-caps">Help</span>
+    </a>
+  </div>
+</nav>
+<main class="ml-16 md:ml-60 pt-12 min-h-screen">
+  <div class="w-full border-b border-border-subtle bg-background p-8 text-center flex flex-col items-center">
+    <h1 class="font-display-lg text-display-lg text-on-surface mb-2 flex items-center gap-2">
+      Markets, everywhere
+      <span class="material-symbols-outlined text-4xl">expand_more</span>
+    </h1>
+    <p class="text-body-lg text-on-surface-variant max-w-2xl">The world’s markets at your fingertips. Track, analyze, and execute with professional-grade data streams.</p>
+  </div>
+  <div class="p-6 max-w-7xl mx-auto space-y-8">
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-headline-sm text-headline-sm flex items-center gap-1 group cursor-pointer">
+          Top 3 of the Day <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">chevron_right</span>
+        </h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">NV</div>
+            <div>
+              <p class="font-bold text-body-md">NVDA</p>
+              <p class="text-text-muted text-body-sm">NVIDIA Corp.</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-data-mono text-body-md text-bull-green">942.30</p>
+            <p class="font-data-mono text-body-sm text-bull-green">+3.45%</p>
+            <svg class="sparkline stroke-bull-green ml-auto mt-1" viewBox="0 0 80 24"><path d="M0 20 L10 18 L20 22 L30 15 L40 18 L50 8 L60 12 L70 4 L80 6"></path></svg>
+          </div>
+        </div>
+        <div class="bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">NQ</div>
+            <div>
+              <p class="font-bold text-body-md">US100</p>
+              <p class="text-text-muted text-body-sm">Nasdaq 100 Index</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-data-mono text-body-md text-bull-green">18,210.50</p>
+            <p class="font-data-mono text-body-sm text-bull-green">+1.12%</p>
+            <svg class="sparkline stroke-bull-green ml-auto mt-1" viewBox="0 0 80 24"><path d="M0 15 L10 16 L20 12 L30 14 L40 10 L50 12 L60 8 L70 6 L80 4"></path></svg>
+          </div>
+        </div>
+        <div class="bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">AU</div>
+            <div>
+              <p class="font-bold text-body-md">XAUUSD</p>
+              <p class="text-text-muted text-body-sm">Gold / US Dollar</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-data-mono text-body-md text-bear-red">2,345.12</p>
+            <p class="font-data-mono text-body-sm text-bear-red">-0.24%</p>
+            <svg class="sparkline stroke-bear-red ml-auto mt-1" viewBox="0 0 80 24"><path d="M0 4 L10 6 L20 12 L30 10 L40 15 L50 12 L60 18 L70 22 L80 20"></path></svg>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="bg-surface-container terminal-border rounded-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between">
+        <h2 class="font-headline-sm text-headline-sm">Global Watchlist</h2>
+        <div class="flex gap-2">
+          <button class="bg-surface-container-high px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:bg-surface-bright transition-colors" type="button">INDICES</button>
+          <button class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">STOCKS</button>
+          <button class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">CRYPTO</button>
+          <button class="text-text-muted px-3 py-1.5 rounded-lg font-label-caps text-label-caps hover:text-on-surface transition-colors" type="button">FOREX</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto terminal-scroll">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-surface-elevated text-label-caps font-label-caps text-text-muted uppercase">
+              <th class="px-6 py-3 border-b border-border-subtle">Asset</th>
+              <th class="px-6 py-3 border-b border-border-subtle">Price</th>
+              <th class="px-6 py-3 border-b border-border-subtle text-right">24H Change</th>
+              <th class="px-6 py-3 border-b border-border-subtle text-center">Trend</th>
+              <th class="px-6 py-3 border-b border-border-subtle text-right">Fundamentals</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border-subtle">
+            <tr class="hover:bg-surface-container-high group transition-colors cursor-pointer">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-bear-red flex items-center justify-center text-[10px] font-bold text-on-primary">500</div>
+                  <div>
+                    <div class="font-bold text-body-md text-on-surface">S&amp;P 500</div>
+                    <div class="text-[10px] text-text-muted uppercase tracking-wider">Indices</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-data-mono text-body-md">5,222.19</td>
+              <td class="px-6 py-4 text-right font-data-mono text-body-md text-bear-red">-0.11%</td>
+              <td class="px-6 py-4 flex justify-center">
+                <svg class="sparkline stroke-bear-red" viewBox="0 0 80 24"><path d="M0 4 L15 12 L30 8 L45 18 L60 14 L80 20"></path></svg>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">insert_chart</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">newspaper</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">info</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="hover:bg-surface-container-high group transition-colors cursor-pointer">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-on-primary">100</div>
+                  <div>
+                    <div class="font-bold text-body-md text-on-surface">Nasdaq 100</div>
+                    <div class="text-[10px] text-text-muted uppercase tracking-wider">Indices</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-data-mono text-body-md">18,298.49</td>
+              <td class="px-6 py-4 text-right font-data-mono text-body-md text-bull-green">+0.42%</td>
+              <td class="px-6 py-4 flex justify-center">
+                <svg class="sparkline stroke-bull-green" viewBox="0 0 80 24"><path d="M0 20 L15 14 L30 18 L45 8 L60 12 L80 4"></path></svg>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">insert_chart</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">newspaper</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">info</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="hover:bg-surface-container-high group transition-colors cursor-pointer">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center text-[10px] font-bold text-on-surface">30</div>
+                  <div>
+                    <div class="font-bold text-body-md text-on-surface">Dow 30</div>
+                    <div class="text-[10px] text-text-muted uppercase tracking-wider">Indices</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-data-mono text-body-md">39,313.64</td>
+              <td class="px-6 py-4 text-right font-data-mono text-body-md text-bull-green">+0.12%</td>
+              <td class="px-6 py-4 flex justify-center">
+                <svg class="sparkline stroke-bull-green" viewBox="0 0 80 24"><path d="M0 16 L15 14 L30 15 L45 12 L60 10 L80 8"></path></svg>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">insert_chart</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">newspaper</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">info</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="hover:bg-surface-container-high group transition-colors cursor-pointer">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-[10px] font-bold text-on-surface">DAX</div>
+                  <div>
+                    <div class="font-bold text-body-md text-on-surface">DAX 40</div>
+                    <div class="text-[10px] text-text-muted uppercase tracking-wider">Indices</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-data-mono text-body-md">18,077.21</td>
+              <td class="px-6 py-4 text-right font-data-mono text-body-md text-bear-red">-0.34%</td>
+              <td class="px-6 py-4 flex justify-center">
+                <svg class="sparkline stroke-bear-red" viewBox="0 0 80 24"><path d="M0 6 L15 8 L30 14 L45 12 L60 20 L80 18"></path></svg>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">insert_chart</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">newspaper</span>
+                  <span class="material-symbols-outlined text-body-lg hover:text-primary">info</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="px-6 py-3 border-t border-border-subtle flex justify-between items-center">
+        <span class="text-label-caps font-label-caps text-text-muted">Showing 4 of 50 assets</span>
+        <button class="text-primary font-bold text-body-sm hover:underline" type="button">View All Indices</button>
+      </div>
+    </section>
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="md:col-span-2 bg-surface-elevated terminal-border rounded-xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="inline-block px-2 py-0.5 bg-tertiary-container text-on-tertiary-container text-[10px] font-bold rounded mb-4">PREMIUM INSIGHT</div>
+          <h3 class="font-headline-md text-headline-md mb-2">Fed Interest Rate Decision: Analyst Forecasts</h3>
+          <p class="text-body-md text-on-surface-variant mb-6">Explore the latest probabilistic models for the upcoming FOMC meeting and how institutional liquidity is positioning.</p>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex -space-x-2">
+            <div class="w-8 h-8 rounded-full border-2 border-surface-elevated bg-primary-container flex items-center justify-center text-on-primary-container text-[10px] font-bold">JD</div>
+            <div class="w-8 h-8 rounded-full border-2 border-surface-elevated bg-secondary-container flex items-center justify-center text-on-secondary-container text-[10px] font-bold">AS</div>
+            <div class="w-8 h-8 rounded-full border-2 border-surface-elevated bg-surface-bright flex items-center justify-center text-on-surface text-[10px] font-bold">+4</div>
+          </div>
+          <button class="text-primary flex items-center gap-1 font-bold text-body-md" type="button">Read Report <span class="material-symbols-outlined">arrow_forward</span></button>
+        </div>
+      </div>
+      <div class="bg-surface-container terminal-border rounded-xl p-6 relative overflow-hidden group">
+        <div class="relative z-10">
+          <h4 class="font-bold text-body-md mb-2">Market Sentiment</h4>
+          <div class="flex items-end gap-2 mb-1">
+            <span class="font-display-lg text-4xl text-bull-green">74</span>
+            <span class="text-label-caps font-label-caps text-text-muted pb-2">GREED</span>
+          </div>
+          <p class="text-body-sm text-text-muted">Investors are showing high risk appetite despite macro volatility.</p>
+        </div>
+        <div class="absolute bottom-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-8xl" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+        </div>
+      </div>
+      <div class="bg-surface-container terminal-border rounded-xl p-6 flex flex-col justify-between">
+        <h4 class="font-bold text-body-md">Upcoming Events</h4>
+        <div class="space-y-4">
+          <div class="flex gap-3">
+            <div class="text-center">
+              <p class="font-label-caps text-[10px] text-text-muted uppercase">May</p>
+              <p class="font-bold text-headline-sm">15</p>
+            </div>
+            <div>
+              <p class="font-bold text-body-sm">CPI Data Release</p>
+              <p class="text-[10px] text-text-muted">High Volatility Expected</p>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="text-center">
+              <p class="font-label-caps text-[10px] text-text-muted uppercase">May</p>
+              <p class="font-bold text-headline-sm">18</p>
+            </div>
+            <div>
+              <p class="font-bold text-body-sm">NVDA Earnings</p>
+              <p class="text-[10px] text-text-muted">Sector Impact: AI/Tech</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="fixed bottom-0 left-16 md:left-60 right-0 bg-surface-container-lowest border-t border-border-subtle h-8 overflow-hidden z-50 flex items-center">
+    <div class="flex items-center gap-8 px-4 animate-marquee whitespace-nowrap">
+      <div class="flex items-center gap-2">
+        <span class="font-label-caps text-[10px] text-text-muted">BTC/USD</span>
+        <span class="font-data-mono text-[10px] text-bull-green">65,241.20 (+1.2%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-label-caps text-[10px] text-text-muted">ETH/USD</span>
+        <span class="font-data-mono text-[10px] text-bear-red">3,412.15 (-0.5%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-label-caps text-[10px] text-text-muted">EUR/USD</span>
+        <span class="font-data-mono text-[10px] text-on-surface">1.0824 (0.0%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-label-caps text-[10px] text-text-muted">WTI OIL</span>
+        <span class="font-data-mono text-[10px] text-bull-green">78.45 (+2.1%)</span>
+      </div>
+      <div class="flex items-center gap-8">
+        <div class="flex items-center gap-2">
+          <span class="font-label-caps text-[10px] text-text-muted">BTC/USD</span>
+          <span class="font-data-mono text-[10px] text-bull-green">65,241.20 (+1.2%)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-label-caps text-[10px] text-text-muted">ETH/USD</span>
+          <span class="font-data-mono text-[10px] text-bear-red">3,412.15 (-0.5%)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.querySelector('input[type="text"]');
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInput?.focus();
+      }
+    });
+    document.querySelectorAll('tbody tr').forEach((row) => {
+      row.addEventListener('mouseenter', () => {
+        row.style.boxShadow = 'inset 2px 0 0 #b6c4ff';
+      });
+      row.addEventListener('mouseleave', () => {
+        row.style.boxShadow = 'none';
+      });
+    });
   });
-
-  const points = closes.map((close, index) => ({
-    x: (index / (closes.length - 1)) * width,
-    y: height - ((close - min) / range) * (height - 10) - 5
-  }));
-
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, isUp ? "rgba(29,242,154,0.24)" : "rgba(255,82,112,0.24)");
-  gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-  ctx.beginPath();
-  points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.lineTo(width, height);
-  ctx.lineTo(0, height);
-  ctx.closePath();
-  ctx.fillStyle = gradient;
-  ctx.fill();
-}
-
-createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
 </body>
 </html>
