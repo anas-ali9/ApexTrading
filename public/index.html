@@ -529,24 +529,344 @@
 </main>
 <div id="toast" class="toast"></div>
 <script>
+  // ─── Utilities ────────────────────────────────────────────────────────────────
+
+  const toast = document.getElementById('toast');
+  function showToast(message) {
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('visible');
+    clearTimeout(toast._hide);
+    toast._hide = setTimeout(() => toast.classList.remove('visible'), 2600);
+  }
+
+  function smoothScroll(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function fmtPrice(price) {
+    if (price == null || !isFinite(price)) return '—';
+    if (price >= 1000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (price >= 10)   return price.toFixed(2);
+    return price.toFixed(4);
+  }
+
+  function fmtPct(pct) {
+    if (pct == null || !isFinite(pct)) return '—';
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(2)}%`;
+  }
+
+  function colorClass(value) {
+    if (value == null) return 'text-on-surface';
+    return value >= 0 ? 'text-bull-green' : 'text-bear-red';
+  }
+
+  function strokeClass(value) {
+    return value >= 0 ? 'stroke-bull-green' : 'stroke-bear-red';
+  }
+
+  function initials(name) {
+    return name.split(/[\s\/]/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  }
+
+  function typeLabel(type) {
+    const map = { index: 'Index', stock: 'Stock', commodity: 'Commodity', forex: 'Forex', crypto: 'Crypto' };
+    return map[type] || type || 'Asset';
+  }
+
+  function signalBadgeClass(signal) {
+    if (!signal) return 'text-text-muted';
+    const s = signal.toUpperCase();
+    if (s.includes('STRONG BUY'))  return 'text-bull-green font-bold';
+    if (s.includes('BUY'))         return 'text-bull-green';
+    if (s.includes('STRONG SELL')) return 'text-bear-red font-bold';
+    if (s.includes('SELL'))        return 'text-bear-red';
+    return 'text-text-muted';
+  }
+
+  function sentimentBadge(sentiment) {
+    if (!sentiment) return '';
+    const s = sentiment.toLowerCase();
+    if (s === 'bullish') return '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-bull-green/20 text-bull-green">BULL</span>';
+    if (s === 'bearish') return '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-bear-red/20 text-bear-red">BEAR</span>';
+    return '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-container-high text-text-muted">MIX</span>';
+  }
+
+  // ─── Sparkline SVG ────────────────────────────────────────────────────────────
+
+  function buildSparkline(bars, changePct) {
+    const closes = (bars || []).map(b => b.close).filter(v => v != null && isFinite(v));
+    if (closes.length < 2) {
+      return `<svg class="sparkline ${strokeClass(changePct ?? 0)}" viewBox="0 0 80 24"><path d="M0 12 L80 12"></path></svg>`;
+    }
+
+    const W = 80, H = 24, PAD = 2;
+    const min = Math.min(...closes);
+    const max = Math.max(...closes);
+    const range = max - min || 1;
+    const step = (W - PAD * 2) / (closes.length - 1);
+
+    const points = closes.map((c, i) => {
+      const x = PAD + i * step;
+      const y = PAD + (1 - (c - min) / range) * (H - PAD * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const cls = strokeClass(changePct ?? (closes[closes.length - 1] - closes[0]));
+    return `<svg class="sparkline ${cls}" viewBox="0 0 ${W} ${H}"><polyline points="${points.join(' ')}"></polyline></svg>`;
+  }
+
+  // ─── Render: Watchlist ────────────────────────────────────────────────────────
+
+  function renderWatchlist(instruments) {
+    const tbody = document.getElementById('watchlist-body');
+    if (!tbody) return;
+
+    if (!instruments.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-text-muted text-body-sm">No market data available.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = instruments.map(inst => {
+      const { id, name, type, quote, bars, signal } = inst;
+      const pct = quote?.changePct ?? 0;
+      const pctClass = colorClass(pct);
+      const abbr = initials(name);
+      const avatarBg = pct >= 0 ? 'bg-bull-green/20' : 'bg-bear-red/20';
+      const avatarText = pct >= 0 ? 'text-bull-green' : 'text-bear-red';
+      const sparkSvg = buildSparkline(bars, pct);
+      const sigClass = signalBadgeClass(signal?.signal);
+
+      return `
+        <tr class="watchlist-row hover:bg-surface-container-high group transition-colors cursor-pointer" data-id="${id}">
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-[10px] font-bold ${avatarText}">${abbr}</div>
+              <div>
+                <div class="font-bold text-body-md text-on-surface">${name}</div>
+                <div class="text-[10px] text-text-muted uppercase tracking-wider">${typeLabel(type)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 font-data-mono text-body-md">${fmtPrice(quote?.price)}</td>
+          <td class="px-6 py-4 text-right font-data-mono text-body-md ${pctClass}">${fmtPct(pct)}</td>
+          <td class="px-6 py-4">
+            <div class="flex justify-center">${sparkSvg}</div>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <div class="flex flex-col items-end gap-1">
+              <span class="text-[10px] font-bold ${sigClass}">${signal?.signal ?? 'NEUTRAL'}</span>
+              <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                <span class="material-symbols-outlined text-body-lg hover:text-primary">insert_chart</span>
+                <span class="material-symbols-outlined text-body-lg hover:text-primary">newspaper</span>
+                <span class="material-symbols-outlined text-body-lg hover:text-primary">info</span>
+              </div>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Row interactions
+    tbody.querySelectorAll('.watchlist-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const name = row.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
+        showToast(`Opening details for ${name}.`);
+      });
+      row.addEventListener('mouseenter', () => { row.style.boxShadow = 'inset 2px 0 0 #b6c4ff'; });
+      row.addEventListener('mouseleave', () => { row.style.boxShadow = 'none'; });
+    });
+  }
+
+  // ─── Render: Top 3 Cards ──────────────────────────────────────────────────────
+
+  function renderTopCards(instruments) {
+    const container = document.getElementById('top-cards');
+    if (!container) return;
+
+    const top3 = instruments.slice(0, 3);
+    if (!top3.length) return;
+
+    container.innerHTML = top3.map(inst => {
+      const { name, quote, bars, signal } = inst;
+      const pct = quote?.changePct ?? 0;
+      const pctClass = colorClass(pct);
+      const abbr = initials(name);
+      const sparkSvg = buildSparkline(bars, pct);
+
+      return `
+        <div class="top-card bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface text-[11px]">${abbr}</div>
+            <div>
+              <p class="font-bold text-body-md">${name}</p>
+              <p class="text-text-muted text-body-sm ${signalBadgeClass(signal?.signal)}">${signal?.signal ?? 'NEUTRAL'}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-data-mono text-body-md ${pctClass}">${fmtPrice(quote?.price)}</p>
+            <p class="font-data-mono text-body-sm ${pctClass}">${fmtPct(pct)}</p>
+            <div class="ml-auto mt-1">${sparkSvg}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    container.querySelectorAll('.top-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const sym = card.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
+        showToast(`${sym} selected.`);
+      });
+    });
+  }
+
+  // ─── Render: News Section ─────────────────────────────────────────────────────
+
+  function renderNews(instruments) {
+    const section = document.getElementById('insight');
+    if (!section) return;
+
+    // Collect all news across instruments, deduplicate by URL/headline
+    const seen = new Set();
+    const allNews = [];
+    for (const inst of instruments) {
+      for (const item of (inst.news || [])) {
+        const key = (item.url || item.headline || '').toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        allNews.push({ ...item, _instName: inst.name, _instType: inst.type });
+      }
+    }
+
+    // Keep the static premium insight card + sentiment card + events card,
+    // then inject a live news grid before them (or replace the placeholder row).
+    // We insert a new news grid as the first child of #insight.
+
+    // Remove any previously injected news grid
+    section.querySelectorAll('.live-news-grid').forEach(el => el.remove());
+
+    if (!allNews.length) return;
+
+    const newsHtml = allNews.slice(0, 6).map(item => {
+      const badge = sentimentBadge(item.sentiment);
+      const source = item.source ? `<span class="text-[9px] font-bold text-text-muted uppercase tracking-wider">${item.source}</span>` : '';
+      const headline = item.headline || 'Market Update';
+      const relevance = item.relevance || '';
+      const href = item.url ? `href="${item.url}" target="_blank" rel="noopener"` : '';
+
+      return `
+        <a ${href} class="news-card block bg-surface-container terminal-border rounded-xl p-4 hover:bg-surface-container-high transition-colors group">
+          <div class="flex items-center justify-between mb-2 gap-2">
+            ${source}
+            ${badge}
+          </div>
+          <p class="text-body-sm font-bold text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-3">${headline}</p>
+          ${relevance ? `<p class="text-[10px] text-text-muted leading-tight">${relevance}</p>` : ''}
+        </a>`;
+    }).join('');
+
+    const grid = document.createElement('div');
+    grid.className = 'live-news-grid md:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-0';
+    grid.innerHTML = `
+      <div class="sm:col-span-2 lg:col-span-3 flex items-center justify-between mb-1">
+        <h3 class="font-headline-sm text-headline-sm">Live Market News</h3>
+        <span class="text-[10px] text-text-muted font-label-caps">${allNews.length} articles matched</span>
+      </div>
+      ${newsHtml}`;
+
+    section.insertBefore(grid, section.firstChild);
+  }
+
+  // ─── Render: Marquee ──────────────────────────────────────────────────────────
+
+  function renderMarquee(instruments) {
+    const marquee = document.getElementById('market-marquee');
+    if (!marquee || !instruments.length) return;
+
+    const items = instruments.map(inst => {
+      const pct = inst.quote?.changePct ?? 0;
+      const cls = colorClass(pct);
+      return `
+        <div class="flex items-center gap-2">
+          <span class="font-label-caps text-[10px] text-text-muted">${inst.id}</span>
+          <span class="font-data-mono text-[10px] ${cls}">${fmtPrice(inst.quote?.price)} (${fmtPct(pct)})</span>
+        </div>`;
+    });
+
+    // Duplicate for seamless loop
+    const combined = [...items, ...items].join('');
+    marquee.innerHTML = combined;
+  }
+
+  // ─── Fetch & Render ───────────────────────────────────────────────────────────
+
+  async function loadMarketData() {
+    try {
+      const res = await fetch('/api/market');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+
+      const instruments = Object.values(json.data || {});
+      if (!instruments.length) {
+        showToast('No market data returned from server.');
+        return;
+      }
+
+      // Sort by absolute % change descending for top cards
+      const sorted = [...instruments].sort((a, b) =>
+        Math.abs(b.quote?.changePct ?? 0) - Math.abs(a.quote?.changePct ?? 0)
+      );
+
+      renderTopCards(sorted);
+      renderWatchlist(instruments);
+      renderNews(instruments);
+      renderMarquee(instruments);
+
+      // Update timestamp
+      const updatedEl = document.getElementById('market-updated');
+      if (updatedEl && json.lastUpdated) {
+        const d = new Date(json.lastUpdated);
+        updatedEl.textContent = `Last updated: ${d.toLocaleTimeString()} · ${json.status || ''}`;
+      }
+
+      // Update count
+      const countEl = document.getElementById('market-count');
+      if (countEl) countEl.textContent = instruments.length;
+
+      // Show data source note if still on sample data
+      const allSample = instruments.every(i => i.source === 'sample');
+      if (allSample) {
+        showToast('Showing sample data — live providers loading in background.');
+      }
+
+    } catch (err) {
+      console.error('[market] Fetch failed:', err);
+      showToast('Failed to load market data. Retrying…');
+    }
+  }
+
+  async function triggerRefresh() {
+    const btn = document.getElementById('btn-refresh');
+    if (btn) { btn.textContent = 'Refreshing…'; btn.disabled = true; }
+    try {
+      const res = await fetch('/api/refresh', { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Refresh triggered — data will update shortly.');
+      // Poll for updated data after a short delay
+      setTimeout(loadMarketData, 4000);
+    } catch (err) {
+      console.error('[refresh] Failed:', err);
+      showToast('Refresh request failed.');
+    } finally {
+      if (btn) { btn.textContent = 'Refresh Data'; btn.disabled = false; }
+    }
+  }
+
+  // ─── Boot ─────────────────────────────────────────────────────────────────────
+
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.querySelector('input[type="text"]');
-    const toast = document.getElementById('toast');
-    const showToast = (message) => {
-      if (!toast) return;
-      toast.textContent = message;
-      toast.classList.add('visible');
-      window.clearTimeout(toast.hideTimeout);
-      toast.hideTimeout = window.setTimeout(() => {
-        toast.classList.remove('visible');
-      }, 2600);
-    };
 
-    const smoothScroll = (targetId) => {
-      const target = document.getElementById(targetId);
-      if (!target) return;
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
+    const smoothScrollLocal = (id) => smoothScroll(id);
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -559,12 +879,9 @@
       link.addEventListener('click', (event) => {
         event.preventDefault();
         const targetId = link.getAttribute('href')?.slice(1);
-        if (!targetId) {
-          showToast('Location not available yet.');
-          return;
-        }
+        if (!targetId) { showToast('Location not available yet.'); return; }
         if (document.getElementById(targetId)) {
-          smoothScroll(targetId);
+          smoothScrollLocal(targetId);
           showToast(`${link.textContent.trim()} opened.`);
         } else {
           showToast('Section coming soon.');
@@ -573,7 +890,7 @@
     });
 
     document.getElementById('btn-get-started')?.addEventListener('click', () => {
-      smoothScroll('watchlist');
+      smoothScrollLocal('watchlist');
       showToast('Jumping to market watchlist.');
     });
 
@@ -590,7 +907,7 @@
     });
 
     document.getElementById('btn-view-all-indices')?.addEventListener('click', () => {
-      smoothScroll('watchlist');
+      smoothScrollLocal('watchlist');
       showToast('Showing full indices watchlist.');
     });
 
@@ -599,18 +916,16 @@
     });
 
     document.getElementById('btn-open-settings')?.addEventListener('click', () => {
-      smoothScroll('settings');
+      smoothScrollLocal('settings');
       showToast('Opening settings.');
     });
 
     document.getElementById('btn-open-help')?.addEventListener('click', () => {
-      smoothScroll('help');
+      smoothScrollLocal('help');
       showToast('Opening help center.');
     });
 
-    document.getElementById('btn-refresh')?.addEventListener('click', () => {
-      showToast('Refresh data button clicked.');
-    });
+    document.getElementById('btn-refresh')?.addEventListener('click', triggerRefresh);
 
     document.querySelectorAll('[data-filter]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -623,25 +938,11 @@
       });
     });
 
-    document.querySelectorAll('.top-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        const symbol = card.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
-        showToast(`${symbol} selected.`);
-      });
-    });
+    // Initial data load
+    loadMarketData();
 
-    document.querySelectorAll('tbody tr').forEach((row) => {
-      row.addEventListener('click', () => {
-        const asset = row.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
-        showToast(`Opening details for ${asset}.`);
-      });
-      row.addEventListener('mouseenter', () => {
-        row.style.boxShadow = 'inset 2px 0 0 #b6c4ff';
-      });
-      row.addEventListener('mouseleave', () => {
-        row.style.boxShadow = 'none';
-      });
-    });
+    // Auto-refresh every 60 seconds
+    setInterval(loadMarketData, 60_000);
   });
 </script>
 </body>
