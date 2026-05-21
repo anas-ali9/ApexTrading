@@ -251,7 +251,7 @@
           Top 3 of the Day <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">chevron_right</span>
         </h2>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div id="top-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="top-card bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">NV</div>
@@ -317,7 +317,7 @@
               <th class="px-6 py-3 border-b border-border-subtle text-right">Fundamentals</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border-subtle">
+          <tbody id="watchlist-body" class="divide-y divide-border-subtle">
             <tr class="hover:bg-surface-container-high group transition-colors cursor-pointer">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
@@ -413,9 +413,13 @@
           </tbody>
         </table>
       </div>
-      <div class="px-6 py-3 border-t border-border-subtle flex justify-between items-center">
-        <span class="text-label-caps font-label-caps text-text-muted">Showing 4 of 50 assets</span>
-        <button id="btn-view-all-indices" class="text-primary font-bold text-body-sm hover:underline" type="button">View All Indices</button>
+      <div class="px-6 py-3 border-t border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <span id="market-updated" class="text-label-caps font-label-caps text-text-muted">Last updated: —</span>
+        <div class="flex flex-wrap items-center gap-4">
+          <span class="text-label-caps font-label-caps text-text-muted">Showing <span id="market-count">0</span> assets</span>
+          <button id="btn-refresh" class="text-primary font-bold text-body-sm hover:underline" type="button">Refresh Data</button>
+          <button id="btn-view-all-indices" class="text-primary font-bold text-body-sm hover:underline" type="button">View All Indices</button>
+        </div>
       </div>
     </section>
     <section id="insight" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -493,7 +497,7 @@
     </section>
   </div>
   <div class="fixed bottom-0 left-16 md:left-60 right-0 bg-surface-container-lowest border-t border-border-subtle h-8 overflow-hidden z-50 flex items-center">
-    <div class="flex items-center gap-8 px-4 animate-marquee whitespace-nowrap">
+    <div id="market-marquee" class="flex items-center gap-8 px-4 animate-marquee whitespace-nowrap">
       <div class="flex items-center gap-2">
         <span class="font-label-caps text-[10px] text-text-muted">BTC/USD</span>
         <span class="font-data-mono text-[10px] text-bull-green">65,241.20 (+1.2%)</span>
@@ -528,6 +532,13 @@
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.querySelector('input[type="text"]');
     const toast = document.getElementById('toast');
+    const topCardContainer = document.getElementById('top-cards');
+    const watchlistBody = document.getElementById('watchlist-body');
+    const marquee = document.getElementById('market-marquee');
+    const marketUpdated = document.getElementById('market-updated');
+    const marketCount = document.getElementById('market-count');
+    const refreshButton = document.getElementById('btn-refresh');
+
     const showToast = (message) => {
       if (!toast) return;
       toast.textContent = message;
@@ -543,6 +554,142 @@
       if (!target) return;
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
+
+    const apiRequest = async (path, options = {}) => {
+      try {
+        const response = await fetch(path, options);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error(error);
+        showToast('Unable to load market data.');
+        return null;
+      }
+    };
+
+    const formatPrice = (value) => {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const formatChange = (value, pct) => {
+      const change = Number(value) || 0;
+      const changePct = Number(pct) || 0;
+      const sign = change > 0 ? '+' : change < 0 ? '' : '';
+      return `${sign}${formatPrice(change)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`;
+    };
+
+    const getTrendClass = (value) => {
+      const change = Number(value) || 0;
+      return change >= 0 ? 'text-bull-green' : 'text-bear-red';
+    };
+
+    const buildTopCard = (instrument) => {
+      const trendClass = getTrendClass(instrument.quote?.change);
+      return `
+        <div class="top-card bg-surface-container terminal-border p-4 rounded-xl flex justify-between items-center hover:bg-surface-container-high transition-colors cursor-pointer" data-symbol="${instrument.id}">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center font-bold text-on-surface">${instrument.id.slice(0, 2)}</div>
+            <div>
+              <p class="font-bold text-body-md">${instrument.name}</p>
+              <p class="text-text-muted text-body-sm">${instrument.type.toUpperCase()}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-data-mono text-body-md ${trendClass}">${formatPrice(instrument.quote?.price)}</p>
+            <p class="font-data-mono text-body-sm ${trendClass}">${formatChange(instrument.quote?.change, instrument.quote?.changePct)}</p>
+            <svg class="sparkline ${trendClass} ml-auto mt-1" viewBox="0 0 80 24"><path d="M0 20 L10 18 L20 22 L30 15 L40 18 L50 8 L60 12 L70 4 L80 6"></path></svg>
+          </div>
+        </div>
+      `;
+    };
+
+    const buildWatchlistRow = (instrument) => {
+      const trendClass = getTrendClass(instrument.quote?.change);
+      return `
+        <tr data-symbol="${instrument.id}" class="hover:bg-surface-container-high group transition-colors cursor-pointer">
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center text-[10px] font-bold text-on-surface">${instrument.id.slice(-3)}</div>
+              <div>
+                <div class="font-bold text-body-md text-on-surface">${instrument.name}</div>
+                <div class="text-[10px] text-text-muted uppercase tracking-wider">${instrument.type}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 font-data-mono text-body-md">${formatPrice(instrument.quote?.price)}</td>
+          <td class="px-6 py-4 text-right font-data-mono text-body-md ${trendClass}">${formatChange(instrument.quote?.change, instrument.quote?.changePct)}</td>
+          <td class="px-6 py-4 flex justify-center">
+            <svg class="sparkline ${trendClass}" viewBox="0 0 80 24"><path d="M0 16 L15 14 L30 18 L45 12 L60 10 L80 8"></path></svg>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <span class="material-symbols-outlined text-body-lg hover:text-primary">insert_chart</span>
+              <span class="material-symbols-outlined text-body-lg hover:text-primary">newspaper</span>
+              <span class="material-symbols-outlined text-body-lg hover:text-primary">info</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    };
+
+    const buildMarquee = (instruments) => {
+      if (!marquee) return;
+      marquee.innerHTML = instruments.map((instrument) => {
+        const trendClass = getTrendClass(instrument.quote?.change);
+        return `
+          <div class="flex items-center gap-2">
+            <span class="font-label-caps text-[10px] text-text-muted">${instrument.id}</span>
+            <span class="font-data-mono text-[10px] ${trendClass}">${formatPrice(instrument.quote?.price)} (${instrument.quote?.changePct >= 0 ? '+' : ''}${Number(instrument.quote?.changePct || 0).toFixed(2)}%)</span>
+          </div>
+        `;
+      }).join('');
+    };
+
+    const attachRowHandlers = () => {
+      watchlistBody?.addEventListener('click', (event) => {
+        const row = event.target.closest('tr[data-symbol]');
+        if (!row) return;
+        const symbol = row.getAttribute('data-symbol');
+        showToast(`Opening details for ${symbol}.`);
+      });
+
+      topCardContainer?.addEventListener('click', (event) => {
+        const card = event.target.closest('.top-card');
+        if (!card) return;
+        const symbol = card.getAttribute('data-symbol');
+        showToast(`${symbol} selected.`);
+      });
+    };
+
+    const loadMarketData = async () => {
+      const data = await apiRequest('/api/market');
+      if (!data || !data.data) return;
+
+      const instruments = Object.values(data.data);
+      if (!instruments.length) return;
+
+      const sorted = instruments.sort((a, b) => a.id.localeCompare(b.id));
+      watchlistBody.innerHTML = sorted.map(buildWatchlistRow).join('');
+      topCardContainer.innerHTML = ['SP500', 'NDQ', 'US30']
+        .map((key) => data.data[key])
+        .filter(Boolean)
+        .map(buildTopCard)
+        .join('');
+      buildMarquee(sorted.slice(0, 4));
+      marketUpdated.textContent = `Last updated: ${new Date(data.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      marketCount.textContent = `${sorted.length}`;
+    };
+
+    refreshButton?.addEventListener('click', async () => {
+      const response = await apiRequest('/api/refresh', { method: 'POST' });
+      if (response) {
+        showToast('Refresh triggered. Updating live data...');
+        setTimeout(loadMarketData, 3000);
+      }
+    });
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -615,25 +762,9 @@
       });
     });
 
-    document.querySelectorAll('.top-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        const symbol = card.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
-        showToast(`${symbol} selected.`);
-      });
-    });
-
-    document.querySelectorAll('tbody tr').forEach((row) => {
-      row.addEventListener('click', () => {
-        const asset = row.querySelector('.font-bold')?.textContent?.trim() || 'Asset';
-        showToast(`Opening details for ${asset}.`);
-      });
-      row.addEventListener('mouseenter', () => {
-        row.style.boxShadow = 'inset 2px 0 0 #b6c4ff';
-      });
-      row.addEventListener('mouseleave', () => {
-        row.style.boxShadow = 'none';
-      });
-    });
+    attachRowHandlers();
+    loadMarketData();
+    setInterval(loadMarketData, 120000);
   });
 </script>
 </body>
