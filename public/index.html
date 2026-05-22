@@ -337,6 +337,44 @@ th.sort-desc::after{content:' ↓';color:var(--pr)}
 /* donut-ish allocation bar */
 .alloc-bar{height:6px;background:var(--b1);border-radius:99px;overflow:hidden;margin-bottom:4px}
 .alloc-fill{height:100%;border-radius:99px;transition:width 1s ease}
+
+/* TRADE BUTTON + DROPDOWN */
+.trade-wrap{position:relative}
+.btn-trade{
+  display:flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,var(--pr),var(--ac));
+  border:none;border-radius:7px;padding:5px 14px;
+  font-size:10px;font-weight:800;letter-spacing:.07em;color:#fff;
+  cursor:pointer;transition:opacity .15s,transform .12s;
+  box-shadow:0 0 14px rgba(79,139,255,.3);
+}
+.btn-trade:hover{opacity:.88;transform:translateY(-1px)}
+.btn-trade:active{transform:translateY(0) scale(.96)}
+.btn-trade svg{width:12px;height:12px;transition:transform .2s}
+.trade-wrap.open .btn-trade svg{transform:rotate(180deg)}
+.trade-dropdown{
+  position:absolute;top:calc(100% + 8px);right:0;min-width:200px;
+  background:var(--s1);border:1px solid var(--b2);border-radius:10px;
+  padding:6px;z-index:300;
+  opacity:0;pointer-events:none;transform:translateY(-6px) scale(.97);
+  transition:opacity .18s,transform .18s;
+  box-shadow:0 8px 32px rgba(0,0,0,.45);
+}
+.trade-wrap.open .trade-dropdown{opacity:1;pointer-events:all;transform:translateY(0) scale(1)}
+.trade-opt{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:7px;cursor:pointer;
+  transition:background .12s;border:none;background:transparent;
+  width:100%;text-align:left;font-family:inherit;color:var(--tx);
+}
+.trade-opt:hover{background:var(--s2)}
+.trade-opt-icon{
+  width:28px;height:28px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;
+}
+.trade-opt-name{font-size:12px;font-weight:700}
+.trade-opt-sub{font-size:10px;color:var(--tx3);margin-top:1px}
+.trade-divider{height:1px;background:var(--b1);margin:4px 0}
 </style>
 </head>
 <body>
@@ -363,6 +401,30 @@ th.sort-desc::after{content:' ↓';color:var(--pr)}
       <svg id="refreshIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
       REFRESH
     </button>
+    <div class="trade-wrap" id="tradeWrap">
+      <button class="btn-trade" id="tradeBtn" onclick="toggleTrade()" aria-label="Trade">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        TRADE
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="trade-dropdown" id="tradeDropdown">
+        <button class="trade-opt" onclick="connectPlatform('tradingview')">
+          <div class="trade-opt-icon" style="background:rgba(33,150,243,.12);color:#2196f3">TV</div>
+          <div>
+            <div class="trade-opt-name">TradingView</div>
+            <div class="trade-opt-sub">Charts, alerts & order routing</div>
+          </div>
+        </button>
+        <div class="trade-divider"></div>
+        <button class="trade-opt" onclick="connectPlatform('mt5')">
+          <div class="trade-opt-icon" style="background:rgba(124,92,252,.12);color:var(--ac)">MT5</div>
+          <div>
+            <div class="trade-opt-name">MetaTrader 5</div>
+            <div class="trade-opt-sub">Direct broker execution</div>
+          </div>
+        </button>
+      </div>
+    </div>
     <span id="lastTs"></span>
   </div>
 </header>
@@ -518,6 +580,27 @@ th.sort-desc::after{content:' ↓';color:var(--pr)}
 // CONFIG — set your API base here (empty = same origin)
 // ════════════════════════════════════════════════════
 const API_BASE = '';   // e.g. 'https://your-railway-app.up.railway.app'
+
+// ── TRADE DROPDOWN ──────────────────────────────────
+function toggleTrade() {
+  document.getElementById('tradeWrap').classList.toggle('open');
+}
+function connectPlatform(platform) {
+  document.getElementById('tradeWrap').classList.remove('open');
+  if (platform === 'tradingview') {
+    toast('Opening TradingView connection…','info');
+    window.open('https://www.tradingview.com','_blank','noopener');
+  } else if (platform === 'mt5') {
+    toast('Opening MetaTrader 5 download page…','info');
+    window.open('https://www.metatrader5.com/en/download','_blank','noopener');
+  }
+}
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!document.getElementById('tradeWrap').contains(e.target)) {
+    document.getElementById('tradeWrap').classList.remove('open');
+  }
+});
 
 let mkt = {};
 let filter = 'all';
