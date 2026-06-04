@@ -31,8 +31,8 @@ const SYMBOLS = {
   SILVER: { av:"SLV", fh:"SLV", name:"Silver",         type:"commodity", base:27,  newsKeywords:["silver","xag","xagusd","precious metal"] },
   GS:     { av:"GS",  fh:"GS",  name:"Goldman Sachs",  type:"stock",     base:458, newsKeywords:["goldman","goldman sachs","banks","banking","financials"] },
   MS:     { av:"MS",  fh:"MS",  name:"Morgan Stanley", type:"stock",     base:98,  newsKeywords:["morgan stanley","banks","banking","financials"] },
-  BTCUSDT:{ kind:"yahooChart", symbol:"BTC-USD", name:"BTC/USDT",     type:"crypto",    base:98000, newsKeywords:["bitcoin","btc","crypto","cryptocurrency"] },
-  SOLUSDT:{ kind:"yahooChart", symbol:"SOL-USD", name:"SOL/USDT",     type:"crypto",    base:220,    newsKeywords:["solana","sol","crypto","cryptocurrency"] },
+  BTCUSDT:{ kind:"binance",    symbol:"BTCUSDT", name:"BTC/USDT",     type:"crypto",    base:98000, newsKeywords:["bitcoin","btc","crypto","cryptocurrency"] },
+  SOLUSDT:{ kind:"binance",    symbol:"SOLUSDT", name:"SOL/USDT",     type:"crypto",    base:220,    newsKeywords:["solana","sol","crypto","cryptocurrency"] },
   US10Y:  { kind:"treasury",   maturity:"10year", name:"US 10Y Yield", type:"yield",    unit:"%", base:4.25, newsKeywords:["treasury","yield","10-year","10 year","rates","fed"] },
   US30Y:  { kind:"treasury",   maturity:"30year", name:"US 30Y Yield", type:"yield",    unit:"%", base:4.55, newsKeywords:["treasury","yield","30-year","30 year","rates","fed"] },
 };
@@ -181,6 +181,52 @@ async function fetchYahooChart(symbol, range="3mo", interval="1d") {
     };
   } catch (e) {
     console.error(`Yahoo chart ${symbol}:`, e.message);
+    return null;
+  }
+}
+
+async function fetchBinanceMarket(symbol) {
+  try {
+    const [tickerRes, klinesRes] = await Promise.all([
+      axios.get("https://api.binance.com/api/v3/ticker/24hr", {
+        timeout: 9000,
+        params: { symbol }
+      }),
+      axios.get("https://api.binance.com/api/v3/klines", {
+        timeout: 9000,
+        params: { symbol, interval: "1d", limit: 60 }
+      })
+    ]);
+
+    const ticker = tickerRes.data || {};
+    const klines = Array.isArray(klinesRes.data) ? klinesRes.data : [];
+    const bars = klines.map(row => ({
+      date: new Date(row[0]).toISOString().split("T")[0],
+      open: round(row[1], 4),
+      high: round(row[2], 4),
+      low: round(row[3], 4),
+      close: round(row[4], 4),
+      volume: Math.round(toNum(row[5]) || 0)
+    })).filter(b => isFiniteNum(b.close));
+    const lastBar = bars[bars.length - 1] || {};
+    const price = toNum(ticker.lastPrice ?? lastBar.close);
+    const prevClose = toNum(ticker.prevClosePrice ?? (bars.length > 1 ? bars[bars.length - 2].close : lastBar.close));
+    return {
+      quote: normalizeQuote({
+        price,
+        open: toNum(ticker.openPrice ?? lastBar.open ?? prevClose ?? price),
+        high: toNum(ticker.highPrice ?? lastBar.high ?? price),
+        low: toNum(ticker.lowPrice ?? lastBar.low ?? price),
+        prevClose,
+        change: toNum(ticker.priceChange ?? (price - prevClose)),
+        changePct: toNum(ticker.priceChangePercent ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0)),
+        volume: toNum(ticker.volume ?? lastBar.volume ?? 0)
+      }),
+      bars,
+      source: "binance"
+    };
+  } catch (e) {
+    console.error(`Binance ${symbol}:`, e.message);
     return null;
   }
 }
@@ -467,7 +513,9 @@ async function refreshOne(id,meta) {
   try {
     const news=await fetchRelevantNews(meta.fh||meta.symbol||id,meta);
     let marketData=null;
-    if (meta.kind==="yahooChart") {
+    if (meta.kind==="binance") {
+      marketData = await fetchBinanceMarket(meta.symbol);
+    } else if (meta.kind==="yahooChart") {
       marketData = await fetchYahooChart(meta.symbol);
     } else if (meta.kind==="treasury") {
       marketData = await fetchTreasuryYield(meta.maturity);
