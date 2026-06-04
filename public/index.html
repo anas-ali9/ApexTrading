@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>APEX Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,13 +16,14 @@
   --pr:#4f8bff;--ac:#7c5cfc;--gn:#00d68f;--rd:#ff3d71;--gd:#f5a623;
   --top-h:50px;--tick-h:30px;
 }
-html{height:100%;-webkit-font-smoothing:antialiased}
-body{background:var(--bg);color:var(--tx);font-family:'Space Grotesk',sans-serif;min-height:100%;overflow-x:hidden}
+html{height:100%;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Space Grotesk',sans-serif;min-height:100%;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:none}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
 a{text-decoration:none;color:inherit}
 button{font-family:inherit;cursor:pointer}
+a,button,input,select,textarea{touch-action:manipulation}
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:linear-gradient(rgba(79,139,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(79,139,255,.025) 1px,transparent 1px);
@@ -375,6 +376,88 @@ th.sort-desc::after{content:' ↓';color:var(--pr)}
 .trade-opt-name{font-size:12px;font-weight:700}
 .trade-opt-sub{font-size:10px;color:var(--tx3);margin-top:1px}
 .trade-divider{height:1px;background:var(--b1);margin:4px 0}
+
+@media (max-width: 1100px){
+  .hero-grid,.vol-grid,.bento,.stats-grid,.stat-row,.two-col{grid-template-columns:repeat(2,1fr)}
+  .bento{grid-template-columns:repeat(2,1fr)}
+  .bento-card:last-child{grid-column:1/-1}
+}
+
+@media (max-width: 760px){
+  :root{--top-h:auto;--tick-h:26px}
+  body::before{background-size:34px 34px;opacity:.55}
+  .glow{display:none}
+  .topbar{
+    height:auto;min-height:var(--top-h);padding:10px 12px;flex-wrap:wrap;align-items:flex-start;gap:8px
+  }
+  .topbar-left,.topbar-right{width:100%;flex-wrap:wrap;gap:8px}
+  .topbar-left{align-items:stretch}
+  .brand{font-size:18px}
+  .search-wrap{flex:1 1 100%;width:100%}
+  #searchInput{width:100%;font-size:14px;padding:10px 12px 10px 34px;border-radius:10px}
+  #searchInput:focus{width:100%}
+  .topbar-right{justify-content:space-between}
+  .btn-refresh,.btn-trade{flex:1 1 auto;justify-content:center;padding:10px 12px;font-size:10px}
+  .trade-wrap{flex:1 1 100%}
+  .trade-dropdown{left:0;right:0;min-width:0}
+  #lastTs{display:none}
+  .main{padding:calc(112px + env(safe-area-inset-top)) 12px calc(var(--tick-h) + 14px)}
+  .sec-head{align-items:flex-start;gap:8px}
+  .sec-head > span:last-child,#clockEl{font-size:10px}
+  .hero-grid,.vol-grid,.bento,.stats-grid,.stat-row,.two-col{grid-template-columns:1fr}
+  .hero-card,.vol-card,.bento-card,.card,.mbox{border-radius:14px}
+  .hero-card,.vol-card{padding:14px}
+  .hero-price{font-size:18px}
+  .vol-num{font-size:16px}
+  .card-head{padding:12px;align-items:flex-start}
+  .tab-row{width:100%;flex-wrap:wrap}
+  .tab{flex:1 1 calc(50% - 3px);text-align:center;padding:8px 10px}
+  .card-foot{padding:10px 12px;gap:8px;flex-wrap:wrap}
+  .card-foot-r{width:100%;text-align:left}
+  .card table{min-width:760px}
+  .card > div[style*="overflow-x:auto"]{-webkit-overflow-scrolling:touch}
+  .bento{gap:10px}
+  .bento-card:last-child{grid-column:auto}
+  .sent-num{font-size:40px}
+  .overlay{align-items:stretch}
+  .mbox{
+    width:100%;max-width:none;max-height:none;min-height:100vh;border-radius:0;
+    transform:none;overflow-y:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom))
+  }
+  .mhdr,.mbody{padding-left:14px;padding-right:14px}
+  .mhdr{padding-top:14px}
+  .mtitle{font-size:18px}
+  .mprice{font-size:24px}
+  .mprice-row{gap:8px;align-items:flex-start}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  #mNarrative{font-size:13px;line-height:1.65}
+  .news-item,.news-mod-item{padding:10px}
+  .ticker{height:26px}
+  .ticker-track{gap:24px;padding:0 12px;animation-duration:60s}
+}
+
+@media (max-width: 520px){
+  .main{padding-top:118px;padding-left:10px;padding-right:10px}
+  .hero-bottom{align-items:flex-start}
+  .spark-wrap{width:64px}
+  .spark-wrap canvas{width:64px}
+  .vol-row{gap:10px}
+  .vol-vol{font-size:9px}
+  .vol-bar-wrap{height:4px}
+  .news-hl{font-size:11px}
+  .news-meta{flex-wrap:wrap;row-gap:4px}
+  .mmeta{font-size:10px;line-height:1.4}
+  .stats-grid{grid-template-columns:1fr}
+  .reason-box,.ai-box{padding:11px}
+  .news-mod-meta{line-height:1.4}
+  .ticker-track{animation-duration:72s}
+}
+
+@media (hover:none){
+  .hero-card:hover,.vol-card:hover,.btn-refresh:hover,.btn-trade:hover,.news-item:hover,.news-link:hover,.trade-opt:hover{transform:none;border-color:inherit;background:inherit}
+  .hero-card:hover,.vol-card:hover{border-color:var(--b1)}
+  .vol-card:hover::before{opacity:0}
+}
 </style>
 </head>
 <body>
@@ -655,6 +738,13 @@ function fmtVol(v) {
   return String(v);
 }
 function col(v) { return v>=0?'var(--gn)':'var(--rd)'; }
+function getVolumeValue(inst) {
+  const quoteVol = Number(inst?.quote?.volume || 0);
+  if (quoteVol > 0) return quoteVol;
+  const bars = inst?.bars || [];
+  const lastBarVol = Number(bars.length ? bars[bars.length - 1].volume : 0);
+  return lastBarVol > 0 ? lastBarVol : 0;
+}
 
 // ── SPARKLINE ──────────────────────────────────────
 let sparkQueue=[];
@@ -789,7 +879,7 @@ function renderHero(data) {
 // ── VOLUME LEADERS (NEW) ────────────────────────────
 function renderVolumeLeaders(data) {
   const ranked = Object.entries(data)
-    .map(([id,inst])=>({id,inst,vol:inst.quote?.volume||0}))
+    .map(([id,inst])=>({id,inst,vol:getVolumeValue(inst)}))
     .filter(x=>x.vol>0)
     .sort((a,b)=>b.vol-a.vol)
     .slice(0,3);
@@ -846,7 +936,7 @@ function renderTable(data, filt) {
       let va,vb;
       if(sortCol==='price') { va=a[1].quote?.price||0; vb=b[1].quote?.price||0; }
       else if(sortCol==='change') { va=a[1].quote?.changePct||0; vb=b[1].quote?.changePct||0; }
-      else if(sortCol==='volume') { va=a[1].quote?.volume||0; vb=b[1].quote?.volume||0; }
+      else if(sortCol==='volume') { va=getVolumeValue(a[1]); vb=getVolumeValue(b[1]); }
       else if(sortCol==='rsi') { va=a[1].signal?.rsi||0; vb=b[1].signal?.rsi||0; }
       else if(sortCol==='confidence') { va=a[1].signal?.confidence||0; vb=b[1].signal?.confidence||0; }
       return sortDir*(vb-va);
@@ -874,7 +964,7 @@ function renderTable(data, filt) {
       </div></td>
       <td class="r mono">${fmtNum(q.price)}</td>
       <td class="r mono" style="color:${clr}">${fmtPct(q.changePct)}</td>
-      <td class="r mono" style="color:var(--tx3)">${fmtVol(q.volume)}</td>
+      <td class="r mono" style="color:var(--tx3)">${fmtVol(getVolumeValue(inst))}</td>
       <td class="c"><div class="tbl-spark"><canvas data-tid="${id}"></canvas></div></td>
       <td class="c"><span class="sig ${SIG_CLS[sg.signal]||'sig-n'}">${sg.signal||'—'}</span></td>
       <td class="r mono" style="color:${rsiClr}">${sg.rsi??'—'}</td>
@@ -990,7 +1080,7 @@ function buildFallbackNarrative(id, inst) {
   return `${inst.name} is trading ${dir} ${Math.abs(q.changePct||0).toFixed(2)}% at ${fmtNum(q.price)}. `
     + (reasons || `The ${sg.signal||'NEUTRAL'} signal reflects current technicals. `)
     + ` ${rsiNote} ${confNote}`.trim()
-    + (q.volume ? ` Volume stands at ${fmtVol(q.volume)}.` : '');
+    + (getVolumeValue(inst) ? ` Volume stands at ${fmtVol(getVolumeValue(inst))}.` : '');
 }
 
 async function fetchNarrative(id, inst) {
@@ -1056,7 +1146,7 @@ function openModal(id) {
     {l:'High',   v:fmtNum(q.high)},
     {l:'Low',    v:fmtNum(q.low)},
     {l:'Prev',   v:fmtNum(q.prevClose)},
-    {l:'Volume', v:fmtVol(q.volume)},
+    {l:'Volume', v:fmtVol(getVolumeValue(inst))},
     {l:'RSI-14', v:sg.rsi??'—'},
     {l:'EMA 9',  v:sg.ema9||'—'},
     {l:'Conf.',  v:(sg.confidence||0)+'%'},

@@ -16,6 +16,7 @@ app.use(express.static(path.join(__dirname, "public")));
 const AV_KEY  = process.env.ALPHA_VANTAGE_KEY || "demo";
 const FH_KEY  = process.env.FINNHUB_KEY       || "";
 const OAI_KEY = process.env.OPENAI_KEY        || "";
+const OAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 const HAS_AV  = Boolean(AV_KEY  && AV_KEY  !== "demo" && AV_KEY  !== "your_key_here");
 const HAS_FH  = Boolean(FH_KEY  && FH_KEY  !== "your_key_here");
@@ -43,6 +44,21 @@ let aiNarrativeCache  = {};
 const isFiniteNum = v => Number.isFinite(toNum(v));
 const toNum  = v => typeof v === "string" ? parseFloat(v.replace(/[%,]/g,"")) : Number(v);
 const round  = (v,d=2) => isFiniteNum(v) ? Number(toNum(v).toFixed(d)) : null;
+const fmtNum = (v,d=2) => {
+  if (v==null || !isFiniteNum(v)) return "—";
+  const n = toNum(v);
+  return Math.abs(n) >= 10000
+    ? n.toLocaleString("en-US",{ minimumFractionDigits:d, maximumFractionDigits:d })
+    : n.toFixed(d);
+};
+const fmtVol = v => {
+  const n = toNum(v);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (n >= 1e9) return `${(n/1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n/1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${(n/1e3).toFixed(1)}K`;
+  return String(Math.round(n));
+};
 const getToday = (off=0) => new Date(Date.now()+off*86400000).toISOString().split("T")[0];
 const stripTags = s => String(s||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
 const uniqueByUrl = items => { const s=new Set(); return items.filter(i=>{ const k=(i.url||i.headline||"").toLowerCase(); if(!k||s.has(k))return false; s.add(k);return true;}); };
@@ -57,6 +73,13 @@ function normalizeQuote(raw) {
   const change    = round(raw.change    ?? price-prevClose);
   const changePct = round(raw.changePct ?? (prevClose?(change/prevClose)*100:0));
   return { price,open,high,low,prevClose,change,changePct, volume:Math.max(0,Math.round(toNum(raw.volume)||0)) };
+}
+function resolveVolume(quote, bars) {
+  const quoteVol = Math.max(0, Math.round(toNum(quote?.volume) || 0));
+  if (quoteVol > 0) return quoteVol;
+  const lastBar = Array.isArray(bars) && bars.length ? bars[bars.length - 1] : null;
+  const lastBarVol = Math.max(0, Math.round(toNum(lastBar?.volume) || 0));
+  return lastBarVol;
 }
 
 // ── SAMPLE BARS ───────────────────────────────────────────────────────────────
@@ -169,10 +192,27 @@ function generateSignal(quote,bars,type) {
 }
 
 // ── OPENAI NARRATIVE ──────────────────────────────────────────────────────────
+function buildNarrativeFromData(instrument) {
+  const { quote = {}, signal = {}, name = "This market" } = instrument || {};
+  const direction = (quote.changePct || 0) >= 0 ? "higher" : "lower";
+  const changeText = `${Math.abs(quote.changePct || 0).toFixed(2)}%`;
+  const signalText = signal.signal ? `${signal.signal.toLowerCase()} signal` : "neutral signal";
+  const volume = resolveVolume(quote, instrument?.bars);
+  const volumeText = volume
+    ? `Volume is ${fmtVol(volume)}.`
+    : "Volume data is currently unavailable.";
+  const reasonText = Array.isArray(signal.reasoning) && signal.reasoning.length
+    ? signal.reasoning.slice(0, 2).join(" ")
+    : "The move is being driven by the current technical setup and recent price action.";
+  return `${name} is trading ${direction} by ${changeText} at ${fmtNum(quote.price)}. `
+    + `The model is showing a ${signalText} with ${signal.confidence || 0}% confidence. `
+    + `${reasonText} ${volumeText}`;
+}
+
 async function generateAINarrative(id, instrument) {
-  if (!HAS_OAI) return null;
   const cached=aiNarrativeCache[id];
   if (cached&&Date.now()-cached.generatedAt<15*60*1000) return cached.text;
+  if (!HAS_OAI) return buildNarrativeFromData(instrument);
   try {
     const { quote,signal,name } = instrument;
     const headlines=(instrument.news||[]).slice(0,3).map(n=>n.headline).filter(Boolean).join("; ");
@@ -186,13 +226,13 @@ ${headlines?`- Headlines: ${headlines}`:""}
 Write 2–3 concise, professional sentences for traders. Be direct and specific. No disclaimers.`;
 
     const { data } = await axios.post("https://api.openai.com/v1/chat/completions",
-      { model:"gpt-3.5-turbo", max_tokens:120, temperature:0.35,
+      { model:OAI_MODEL, max_tokens:120, temperature:0.35,
         messages:[{ role:"user",content:prompt }] },
       { timeout:10000, headers:{ Authorization:`Bearer ${OAI_KEY}`, "Content-Type":"application/json" } });
     const text=data.choices?.[0]?.message?.content?.trim()||null;
     if (text) aiNarrativeCache[id]={ text, generatedAt:Date.now() };
-    return text;
-  } catch(e) { console.error(`OpenAI ${id}:`,e.message); return null; }
+    return text||buildNarrativeFromData(instrument);
+  } catch(e) { console.error(`OpenAI ${id}:`,e.message); return buildNarrativeFromData(instrument); }
 }
 
 // ── DATA FETCHERS ─────────────────────────────────────────────────────────────
@@ -294,6 +334,7 @@ async function fetchRelevantNews(symbol, meta) {
 function buildInstrument(id,meta,quote,bars,news,source,note) {
   const usableBars=Array.isArray(bars)&&bars.length>=26?bars:makeSampleBars(id,meta);
   const usableQuote=normalizeQuote(quote)||quoteFromBars(usableBars);
+  if (usableQuote) usableQuote.volume = resolveVolume(usableQuote, usableBars);
   const signal=generateSignal(usableQuote,usableBars,meta.type);
   if (note) signal.reasoning.unshift(note);
   return { id,name:meta.name,type:meta.type,quote:usableQuote,
@@ -355,9 +396,8 @@ app.get("/api/market/:id",(req,res)=>{
 app.get("/api/narrative/:id",async(req,res)=>{
   const id=req.params.id.toUpperCase();
   if (!marketCache[id]) return res.status(404).json({ error:"Symbol not found" });
-  if (!HAS_OAI) return res.json({ narrative:"Add OPENAI_KEY to Railway environment variables to enable AI commentary." });
   const narrative=await generateAINarrative(id,marketCache[id]);
-  res.json({ narrative:narrative||"AI commentary temporarily unavailable." });
+  res.json({ narrative:narrative||buildNarrativeFromData(marketCache[id]) });
 });
 
 app.post("/api/refresh",(req,res)=>{
