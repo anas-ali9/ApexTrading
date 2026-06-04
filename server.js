@@ -31,8 +31,6 @@ const SYMBOLS = {
   SILVER: { av:"SLV", fh:"SLV", name:"Silver",         type:"commodity", base:27,  newsKeywords:["silver","xag","xagusd","precious metal"] },
   GS:     { av:"GS",  fh:"GS",  name:"Goldman Sachs",  type:"stock",     base:458, newsKeywords:["goldman","goldman sachs","banks","banking","financials"] },
   MS:     { av:"MS",  fh:"MS",  name:"Morgan Stanley", type:"stock",     base:98,  newsKeywords:["morgan stanley","banks","banking","financials"] },
-  BTCUSDT:{ kind:"binance",    symbol:"BTCUSDT", name:"BTC/USDT",     type:"crypto",    base:98000, newsKeywords:["bitcoin","btc","crypto","cryptocurrency"] },
-  SOLUSDT:{ kind:"binance",    symbol:"SOLUSDT", name:"SOL/USDT",     type:"crypto",    base:220,    newsKeywords:["solana","sol","crypto","cryptocurrency"] },
   US10Y:  { kind:"treasury",   maturity:"10year", name:"US 10Y Yield", type:"yield",    unit:"%", base:4.25, newsKeywords:["treasury","yield","10-year","10 year","rates","fed"] },
   US30Y:  { kind:"treasury",   maturity:"30year", name:"US 30Y Yield", type:"yield",    unit:"%", base:4.55, newsKeywords:["treasury","yield","30-year","30 year","rates","fed"] },
 };
@@ -482,8 +480,8 @@ function analyzeNewsRelevance(item,meta) {
 
 async function fetchRelevantNews(symbol, meta) {
   const [company,market]=await Promise.all([
-    (meta.kind==="yahooChart"||meta.kind==="treasury"||meta.type==="crypto") ? Promise.resolve([]) : fetchFHNews(symbol),
-    (meta.type==="index"||meta.type==="commodity"||meta.type==="crypto"||meta.type==="yield") ? fetchFHMarketNews() : Promise.resolve([])
+    (meta.kind==="yahooChart"||meta.kind==="treasury") ? Promise.resolve([]) : fetchFHNews(symbol),
+    (meta.type==="index"||meta.type==="commodity"||meta.type==="yield") ? fetchFHMarketNews() : Promise.resolve([])
   ]);
   return uniqueByUrl([...company,...market,...FALLBACK_NEWS])
     .map(i=>analyzeNewsRelevance(i,meta))
