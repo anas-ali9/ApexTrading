@@ -548,6 +548,8 @@ th.sort-desc::after{content:' ↓';color:var(--pr)}
         <button class="tab on" data-f="all">All</button>
         <button class="tab" data-f="index">Indices</button>
         <button class="tab" data-f="commodity">Commodities</button>
+        <button class="tab" data-f="crypto">Crypto</button>
+        <button class="tab" data-f="yield">Yields</button>
         <button class="tab" data-f="stock">Stocks</button>
       </div>
     </div>
@@ -690,7 +692,7 @@ let filter = 'all';
 let sortCol = null;
 let sortDir = 1; // 1 = asc, -1 = desc
 
-const TYPE = { index:'Index', commodity:'Commodity', stock:'Stock' };
+const TYPE = { index:'Index', commodity:'Commodity', stock:'Stock', crypto:'Crypto', yield:'Yield' };
 const SIG_CLS = {
   'STRONG BUY':'sig-sb','BUY':'sig-b','NEUTRAL':'sig-n','SELL':'sig-s','STRONG SELL':'sig-ss'
 };

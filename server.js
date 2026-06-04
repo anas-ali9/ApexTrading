@@ -24,13 +24,17 @@ const HAS_OAI = Boolean(OAI_KEY && OAI_KEY !== "your_key_here");
 
 // ── SYMBOL MAP ────────────────────────────────────────────────────────────────
 const SYMBOLS = {
-  NDQ:    { av:"QQQ", fh:"QQQ", name:"NASDAQ 100",     type:"index",     base:456, newsKeywords:["nasdaq","nasdaq 100","tech","qqq","nvidia","apple","microsoft"] },
-  US30:   { av:"DIA", fh:"DIA", name:"Dow Jones 30",   type:"index",     base:390, newsKeywords:["dow","dow jones","wall street","industrial","us 30","dia"] },
-  SP500:  { av:"SPY", fh:"SPY", name:"S&P 500",        type:"index",     base:524, newsKeywords:["s&p","s&p 500","spx","spy","us 500","wall street","equities"] },
+  NDQ:    { kind:"yahooChart", symbol:"^NDX", name:"NASDAQ 100",     type:"index",     base:21800, newsKeywords:["nasdaq","nasdaq 100","tech","qqq","nvidia","apple","microsoft"] },
+  US30:   { kind:"yahooChart", symbol:"^DJI", name:"DJI30",          type:"index",     base:50700, newsKeywords:["dow","dow jones","wall street","industrial","us 30","dji"] },
+  SP500:  { kind:"yahooChart", symbol:"^GSPC",name:"S&P 500",        type:"index",     base:5950,  newsKeywords:["s&p","s&p 500","spx","spy","us 500","wall street","equities"] },
   GOLD:   { av:"GLD", fh:"GLD", name:"Gold",           type:"commodity", base:216, newsKeywords:["gold","xau","xauusd","bullion","precious metal"] },
   SILVER: { av:"SLV", fh:"SLV", name:"Silver",         type:"commodity", base:27,  newsKeywords:["silver","xag","xagusd","precious metal"] },
   GS:     { av:"GS",  fh:"GS",  name:"Goldman Sachs",  type:"stock",     base:458, newsKeywords:["goldman","goldman sachs","banks","banking","financials"] },
   MS:     { av:"MS",  fh:"MS",  name:"Morgan Stanley", type:"stock",     base:98,  newsKeywords:["morgan stanley","banks","banking","financials"] },
+  BTCUSDT:{ kind:"yahooChart", symbol:"BTC-USD", name:"BTC/USDT",     type:"crypto",    base:98000, newsKeywords:["bitcoin","btc","crypto","cryptocurrency"] },
+  SOLUSDT:{ kind:"yahooChart", symbol:"SOL-USD", name:"SOL/USDT",     type:"crypto",    base:220,    newsKeywords:["solana","sol","crypto","cryptocurrency"] },
+  US10Y:  { kind:"treasury",   maturity:"10year", name:"US 10Y Yield", type:"yield",    unit:"%", base:4.25, newsKeywords:["treasury","yield","10-year","10 year","rates","fed"] },
+  US30Y:  { kind:"treasury",   maturity:"30year", name:"US 30Y Yield", type:"yield",    unit:"%", base:4.55, newsKeywords:["treasury","yield","30-year","30 year","rates","fed"] },
 };
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -103,6 +107,116 @@ function quoteFromBars(bars) {
   return normalizeQuote({ price:l.close,open:l.open,high:l.high,low:l.low,
     prevClose:p.close,change:l.close-p.close,
     changePct:p.close?((l.close-p.close)/p.close)*100:0,volume:l.volume });
+}
+
+function quoteFromSeries(bars, meta={}) {
+  const usableBars = Array.isArray(bars) ? bars.filter(b => isFiniteNum(b.close)) : [];
+  if (!usableBars.length) return null;
+  const last = usableBars[usableBars.length - 1];
+  const prev = usableBars[usableBars.length - 2] || last;
+  const price = round(last.close ?? last.price ?? last.yield ?? meta.base ?? 0, 4);
+  return normalizeQuote({
+    price,
+    open: last.open ?? prev.close ?? price,
+    high: last.high ?? price,
+    low: last.low ?? price,
+    prevClose: prev.close ?? price,
+    change: price - (prev.close ?? price),
+    changePct: prev.close ? ((price - prev.close) / prev.close) * 100 : 0,
+    volume: last.volume ?? 0
+  });
+}
+
+async function fetchYahooChart(symbol, range="3mo", interval="1d") {
+  try {
+    const { data } = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`, {
+      timeout: 9000,
+      params: {
+        range,
+        interval,
+        includePrePost: "false",
+        events: "div,splits",
+        corsDomain: "finance.yahoo.com"
+      },
+      headers: { "User-Agent":"Mozilla/5.0" }
+    });
+    const result = data?.chart?.result?.[0];
+    const meta = result?.meta || {};
+    const timestamps = result?.timestamp || [];
+    const quote = result?.indicators?.quote?.[0] || {};
+    const bars = timestamps.map((ts, idx) => {
+      const close = quote.close?.[idx];
+      const open = quote.open?.[idx];
+      const high = quote.high?.[idx];
+      const low = quote.low?.[idx];
+      const volume = quote.volume?.[idx];
+      if (!isFiniteNum(close ?? open)) return null;
+      return {
+        date: new Date(ts * 1000).toISOString().split("T")[0],
+        open: round(open ?? close),
+        high: round(high ?? close),
+        low: round(low ?? close),
+        close: round(close ?? open),
+        volume: Math.max(0, Math.round(toNum(volume) || 0))
+      };
+    }).filter(Boolean);
+    const price = isFiniteNum(meta.regularMarketPrice) ? meta.regularMarketPrice
+      : bars.length ? bars[bars.length - 1].close : null;
+    const prevClose = isFiniteNum(meta.chartPreviousClose) ? meta.chartPreviousClose
+      : bars.length > 1 ? bars[bars.length - 2].close : price;
+    const lastBar = bars[bars.length - 1] || {};
+    return {
+      quote: normalizeQuote({
+        price,
+        open: lastBar.open ?? prevClose ?? price,
+        high: lastBar.high ?? price,
+        low: lastBar.low ?? price,
+        prevClose,
+        change: isFiniteNum(price) && isFiniteNum(prevClose) ? price - prevClose : 0,
+        changePct: isFiniteNum(price) && isFiniteNum(prevClose) && prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
+        volume: lastBar.volume ?? 0
+      }),
+      bars,
+      source: "yahoo"
+    };
+  } catch (e) {
+    console.error(`Yahoo chart ${symbol}:`, e.message);
+    return null;
+  }
+}
+
+async function fetchTreasuryYield(maturity) {
+  if (!HAS_AV) return null;
+  try {
+    const { data } = await axios.get("https://www.alphavantage.co/query", {
+      timeout: 9000,
+      params: { function:"TREASURY_YIELD", interval:"daily", maturity, apikey:AV_KEY }
+    });
+    const series = data?.data || data?.["data"] || data?.["Treasury Yield"] || data?.["Time Series (Daily)"];
+    const rows = Array.isArray(series)
+      ? series.map(row => ({
+          date: row.date || row.timestamp || row.time || row[0],
+          open: toNum(row.open ?? row["1. open"] ?? row.value),
+          high: toNum(row.high ?? row["2. high"] ?? row.value),
+          low: toNum(row.low ?? row["3. low"] ?? row.value),
+          close: toNum(row.close ?? row["4. close"] ?? row.value),
+          volume: 0
+        }))
+      : Object.entries(series || {}).map(([date, row]) => ({
+          date,
+          open: toNum(row["1. open"] ?? row.open ?? row.value),
+          high: toNum(row["2. high"] ?? row.high ?? row.value),
+          low: toNum(row["3. low"] ?? row.low ?? row.value),
+          close: toNum(row["4. close"] ?? row.close ?? row.value),
+          volume: 0
+        }));
+    const bars = rows.filter(r => isFiniteNum(r.close)).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    const quote = quoteFromSeries(bars, { base: 0 });
+    return { quote, bars, source:"treasury" };
+  } catch(e) {
+    console.error(`Treasury yield ${maturity}:`, e.message);
+    return null;
+  }
 }
 
 // ── TECHNICALS ────────────────────────────────────────────────────────────────
@@ -322,8 +436,8 @@ function analyzeNewsRelevance(item,meta) {
 
 async function fetchRelevantNews(symbol, meta) {
   const [company,market]=await Promise.all([
-    fetchFHNews(symbol),
-    (meta.type==="index"||meta.type==="commodity")?fetchFHMarketNews():Promise.resolve([])
+    (meta.kind==="yahooChart"||meta.kind==="treasury"||meta.type==="crypto") ? Promise.resolve([]) : fetchFHNews(symbol),
+    (meta.type==="index"||meta.type==="commodity"||meta.type==="crypto"||meta.type==="yield") ? fetchFHMarketNews() : Promise.resolve([])
   ]);
   return uniqueByUrl([...company,...market,...FALLBACK_NEWS])
     .map(i=>analyzeNewsRelevance(i,meta))
@@ -351,15 +465,28 @@ function seedMarketCache() {
 
 async function refreshOne(id,meta) {
   try {
-    const [fhQuote,news,avBars]=await Promise.all([
-      fetchFHQuote(meta.fh), fetchRelevantNews(meta.fh,meta), fetchAVDaily(meta.av)
-    ]);
-    const avQuote=fhQuote?null:await fetchAVQuote(meta.av);
-    const liveQuote=fhQuote||avQuote;
+    const news=await fetchRelevantNews(meta.fh||meta.symbol||id,meta);
+    let marketData=null;
+    if (meta.kind==="yahooChart") {
+      marketData = await fetchYahooChart(meta.symbol);
+    } else if (meta.kind==="treasury") {
+      marketData = await fetchTreasuryYield(meta.maturity);
+    } else {
+      const [fhQuote, avBars] = await Promise.all([
+        fetchFHQuote(meta.fh),
+        fetchAVDaily(meta.av)
+      ]);
+      const avQuote = fhQuote ? null : await fetchAVQuote(meta.av);
+      marketData = {
+        quote: fhQuote || avQuote,
+        bars: avBars,
+        source: fhQuote || avQuote ? "live" : "sample"
+      };
+    }
     const existing=marketCache[id];
-    const bars=avBars.length?avBars:existing?.bars;
-    const quote=liveQuote||existing?.quote;
-    const source=liveQuote||avBars.length?"live":"sample";
+    const bars=marketData?.bars?.length?marketData.bars:existing?.bars;
+    const quote=marketData?.quote||existing?.quote;
+    const source=marketData?.source || (quote||bars?.length?"live":"sample");
     marketCache[id]=buildInstrument(id,meta,quote,bars,news,source,
       source==="live"?"Live data connected":"Sample data — check API keys in Railway");
   } catch(e){ console.error(`refreshOne ${id}:`,e.message); }
@@ -373,7 +500,7 @@ async function refreshMarketData() {
     const entries=Object.entries(SYMBOLS);
     for (let i=0;i<entries.length;i++) {
       const [id,meta]=entries[i];
-      if (HAS_AV&&i>0) await new Promise(r=>setTimeout(r,13000));
+      if (HAS_AV&&i>0&&meta.kind!=="yahooChart"&&meta.kind!=="treasury") await new Promise(r=>setTimeout(r,13000));
       await refreshOne(id,meta);
     }
     lastUpdated=new Date().toISOString(); refreshStatus="Live data loaded";
@@ -408,7 +535,7 @@ app.post("/api/refresh",(req,res)=>{
 app.get("/api/news/:id",async(req,res)=>{
   const id=req.params.id.toUpperCase(), meta=SYMBOLS[id];
   if (!meta) return res.status(404).json({ error:"Symbol not found" });
-  res.json({ news:await fetchRelevantNews(meta.fh,meta) });
+  res.json({ news:await fetchRelevantNews(meta.fh||meta.symbol||id,meta) });
 });
 
 app.get("/health",(req,res)=>
